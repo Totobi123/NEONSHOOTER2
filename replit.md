@@ -18,14 +18,21 @@ No build process required - just serve the HTML file directly.
 ## Game Features
 - **1v1 PvP Combat:**
   - Local 1v1: Two players on same device
+  - Bot Mode: Play against AI with 3 difficulty levels (Easy/Medium/Hard)
   - Online 1v1: Connect via code or random match (placeholder UI)
 - **Gameplay:**
   - 3 weapons (Pistol, Shotgun, Sniper)
   - No powerups (removed for balanced PvP)
   - Health bars for both players
-- **Controls:**
+  - Bot AI with adaptive difficulty
+- **Controls (2-Player Mode):**
   - Player 1: WASD to move, Click to shoot, CTRL for weapon switch
   - Player 2: Arrow Keys to move, CTRL to shoot
+- **Bot Mode:**
+  - Easy: Slower movement speed (2.5x), longer fire rate (800ms)
+  - Medium: Balanced speed (4x), standard fire rate (500ms)
+  - Hard: Fast movement speed (5.5x), rapid fire rate (300ms)
+  - Bot automatically moves toward and shoots at player
 - **Features:**
   - Pause button (ESC key)
   - Home button on game over
@@ -39,3 +46,6 @@ No build process required - just serve the HTML file directly.
 - 2025-11-22: Added home buttons to return to menu
 - 2025-11-22: Added Local 1v1 mode (fully functional)
 - 2025-11-22: Added Online 1v1 UI (random match + code-based matchmaking)
+- 2025-11-22: Added Bot Mode with 3 difficulty levels
+- 2025-11-22: Bot AI automatically moves toward and shoots at player
+- 2025-11-22: Added choice screen between vs Bot and vs Player (local)

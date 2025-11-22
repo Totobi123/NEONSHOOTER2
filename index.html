@@ -44,6 +44,23 @@
         <p style="margin-top:20px; font-size:0.9rem;">P1: WASD to Move, Click to Shoot | P2: Arrow Keys to Move, CTRL to Shoot</p>
     </div>
     
+    <div id="local-choice-modal" class="menu-box" style="display: none;">
+        <h1>Local Mode</h1>
+        <p>Choose Your Opponent:</p>
+        <button id="vs-bot-btn" class="mode-btn">VS BOT</button>
+        <button id="vs-player-btn" class="mode-btn">VS PLAYER</button>
+        <button id="backToMainBtn" class="mode-btn" style="background: linear-gradient(45deg, #666, #444); margin-top: 20px;">BACK</button>
+    </div>
+    
+    <div id="difficulty-modal" class="menu-box" style="display: none;">
+        <h1>Choose Bot Difficulty</h1>
+        <p>Select difficulty:</p>
+        <button id="easy-btn" class="mode-btn" style="background: linear-gradient(45deg, #4CAF50, #45a049);">EASY</button>
+        <button id="medium-btn" class="mode-btn" style="background: linear-gradient(45deg, #ff9800, #e68900);">MEDIUM</button>
+        <button id="hard-btn" class="mode-btn" style="background: linear-gradient(45deg, #f44, #c00);">HARD</button>
+        <button id="backToCHoiceBtn" class="mode-btn" style="background: linear-gradient(45deg, #666, #444); margin-top: 20px;">BACK</button>
+    </div>
+    
     <div id="online-modal" class="menu-box" style="display: none;">
         <h1>Online 1v1</h1>
         <p>Connect with a Player:</p>
@@ -88,7 +105,10 @@ window.addEventListener('resize', () => { canvas.width = window.innerWidth; canv
 let gameActive = false;
 let gamePaused = false;
 let gameMode = null; // 'local' or 'online'
+let localMode = null; // 'bot' or 'player'
+let botDifficulty = 'medium'; // 'easy', 'medium', 'hard'
 let animationId;
+let isPlayingBot = false;
 
 const weapons = [
     { name: 'Pistol', bullets: 1, speed: 15, damage: 10, fireRate: 200 },
@@ -126,6 +146,39 @@ class Player {
     }
 }
 
+class Bot {
+    constructor(x, y, radius, color, difficulty = 'medium') {
+        this.x = x; this.y = y; this.radius = radius; this.color = color;
+        this.velocity = { x: 0, y: 0 }; this.health = 100;
+        this.difficulty = difficulty;
+        this.speed = difficulty === 'easy' ? 2.5 : difficulty === 'medium' ? 4 : 5.5;
+        this.fireRate = difficulty === 'easy' ? 800 : difficulty === 'medium' ? 500 : 300;
+        this.lastShotTime = 0;
+        this.currentWeaponIndex = 0;
+    }
+    draw() { ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2, false); ctx.fillStyle = this.color; ctx.fill(); ctx.shadowBlur = 15; ctx.shadowColor = this.color; ctx.closePath(); ctx.shadowBlur = 0; }
+    update(player1) {
+        const angle = Math.atan2(player1.y - this.y, player1.x - this.x);
+        this.velocity = { x: Math.cos(angle) * this.speed, y: Math.sin(angle) * this.speed };
+        this.x += this.velocity.x;
+        this.y += this.velocity.y;
+        
+        if(this.x - this.radius < 0) this.x = this.radius;
+        if(this.x + this.radius > canvas.width) this.x = canvas.width - this.radius;
+        if(this.y - this.radius < 0) this.y = this.radius;
+        if(this.y + this.radius > canvas.height) this.y = canvas.height - this.radius;
+        
+        const now = Date.now();
+        if(now - this.lastShotTime > this.fireRate) {
+            this.lastShotTime = now;
+            const weapon = weapons[this.currentWeaponIndex];
+            const velocity = { x: Math.cos(angle) * weapon.speed, y: Math.sin(angle) * weapon.speed };
+            projectiles.push(new Projectile(this.x, this.y, 5, this.color, velocity, weapon.damage, this));
+        }
+        this.draw();
+    }
+}
+
 class Projectile { 
     constructor(x, y, radius, color, velocity, damage, owner) {
         this.x = x; this.y = y; this.radius = radius; this.color = color; 
@@ -137,6 +190,7 @@ class Projectile {
 
 let player1 = new Player(canvas.width/4, canvas.height/2, 15, '#0ff', false);
 let player2 = new Player(canvas.width * 3/4, canvas.height/2, 15, '#f0f', true);
+let bot = null;
 let projectiles = [];
 const keys = {};
 
@@ -190,50 +244,95 @@ function animate() {
     
     if(!gamePaused) {
         player1.update(keys);
-        player2.update(keys);
-        
-        projectiles.forEach((p, i) => {
-            p.update();
-            if(p.x < 0 || p.x > canvas.width || p.y < 0 || p.y > canvas.height) {
-                projectiles.splice(i, 1);
-                return;
-            }
-            
-            const checkPlayer = p.owner === player1 ? player2 : player1;
-            const dist = Math.hypot(p.x - checkPlayer.x, p.y - checkPlayer.y);
-            if(dist < p.radius + checkPlayer.radius) {
-                checkPlayer.health -= p.damage;
-                projectiles.splice(i, 1);
-                updateHealthBars();
-                
-                if(checkPlayer.health <= 0) {
-                    endGame(p.owner === player1 ? player1 : player2);
+        if(isPlayingBot) {
+            bot.update(player1);
+            const opponent = bot;
+            projectiles.forEach((p, i) => {
+                p.update();
+                if(p.x < 0 || p.x > canvas.width || p.y < 0 || p.y > canvas.height) {
+                    projectiles.splice(i, 1);
+                    return;
                 }
-            }
-        });
+                
+                if(p.owner === player1) {
+                    const dist = Math.hypot(p.x - opponent.x, p.y - opponent.y);
+                    if(dist < p.radius + opponent.radius) {
+                        opponent.health -= p.damage;
+                        projectiles.splice(i, 1);
+                        updateHealthBars();
+                        if(opponent.health <= 0) {
+                            endGame(player1);
+                        }
+                    }
+                } else {
+                    const dist = Math.hypot(p.x - player1.x, p.y - player1.y);
+                    if(dist < p.radius + player1.radius) {
+                        player1.health -= p.damage;
+                        projectiles.splice(i, 1);
+                        updateHealthBars();
+                        if(player1.health <= 0) {
+                            endGame(opponent);
+                        }
+                    }
+                }
+            });
+        } else {
+            player2.update(keys);
+            projectiles.forEach((p, i) => {
+                p.update();
+                if(p.x < 0 || p.x > canvas.width || p.y < 0 || p.y > canvas.height) {
+                    projectiles.splice(i, 1);
+                    return;
+                }
+                
+                const checkPlayer = p.owner === player1 ? player2 : player1;
+                const dist = Math.hypot(p.x - checkPlayer.x, p.y - checkPlayer.y);
+                if(dist < p.radius + checkPlayer.radius) {
+                    checkPlayer.health -= p.damage;
+                    projectiles.splice(i, 1);
+                    updateHealthBars();
+                    
+                    if(checkPlayer.health <= 0) {
+                        endGame(p.owner === player1 ? player1 : player2);
+                    }
+                }
+            });
+        }
     }
 }
 
 function updateHealthBars() {
     document.getElementById('p1-health-fill').style.width = Math.max(0, player1.health) + '%';
-    document.getElementById('p2-health-fill').style.width = Math.max(0, player2.health) + '%';
     const p1Percent = Math.max(0, player1.health);
-    const p2Percent = Math.max(0, player2.health);
     document.getElementById('p1-health-fill').style.background = p1Percent > 50 ? '#0f0' : p1Percent > 20 ? '#ff0' : '#f00';
+    
+    const p2Health = isPlayingBot ? (bot ? bot.health : 100) : player2.health;
+    document.getElementById('p2-health-fill').style.width = Math.max(0, p2Health) + '%';
+    const p2Percent = Math.max(0, p2Health);
     document.getElementById('p2-health-fill').style.background = p2Percent > 50 ? '#0f0' : p2Percent > 20 ? '#ff0' : '#f00';
 }
 
 function startGame() {
     player1.health = 100;
-    player2.health = 100;
     player1.x = canvas.width/4;
     player1.y = canvas.height/2;
-    player2.x = canvas.width * 3/4;
-    player2.y = canvas.height/2;
     projectiles = [];
     gameActive = true;
     gamePaused = false;
+    
+    if(isPlayingBot) {
+        bot = new Bot(canvas.width * 3/4, canvas.height/2, 15, '#f0f', botDifficulty);
+        document.getElementById('p2-label').innerText = 'Bot (' + botDifficulty.toUpperCase() + ')';
+    } else {
+        player2.health = 100;
+        player2.x = canvas.width * 3/4;
+        player2.y = canvas.height/2;
+        document.getElementById('p2-label').innerText = 'Player 2';
+    }
+    
     document.getElementById('start-modal').style.display = 'none';
+    document.getElementById('local-choice-modal').style.display = 'none';
+    document.getElementById('difficulty-modal').style.display = 'none';
     document.getElementById('online-modal').style.display = 'none';
     document.getElementById('pause-btn').style.display = 'block';
     updateHealthBars();
@@ -243,7 +342,11 @@ function startGame() {
 function endGame(winner) {
     gameActive = false;
     cancelAnimationFrame(animationId);
-    document.getElementById('winner-text').innerText = winner === player1 ? 'Player 1 Wins!' : 'Player 2 Wins!';
+    if(isPlayingBot) {
+        document.getElementById('winner-text').innerText = winner === player1 ? 'You Win!' : 'Bot Wins!';
+    } else {
+        document.getElementById('winner-text').innerText = winner === player1 ? 'Player 1 Wins!' : 'Player 2 Wins!';
+    }
     document.getElementById('game-over-modal').style.display = 'flex';
     document.getElementById('pause-btn').style.display = 'none';
 }
@@ -260,6 +363,8 @@ function goHome() {
     cancelAnimationFrame(animationId);
     document.getElementById('start-modal').style.display = 'flex';
     document.getElementById('online-modal').style.display = 'none';
+    document.getElementById('local-choice-modal').style.display = 'none';
+    document.getElementById('difficulty-modal').style.display = 'none';
     document.getElementById('game-over-modal').style.display = 'none';
     document.getElementById('pause-modal').style.display = 'none';
     document.getElementById('pause-btn').style.display = 'none';
@@ -269,7 +374,44 @@ function goHome() {
 // Event Listeners
 document.getElementById('localModeBtn').addEventListener('click', () => {
     gameMode = 'local';
+    document.getElementById('start-modal').style.display = 'none';
+    document.getElementById('local-choice-modal').style.display = 'flex';
+});
+
+document.getElementById('vs-bot-btn').addEventListener('click', () => {
+    isPlayingBot = true;
+    document.getElementById('local-choice-modal').style.display = 'none';
+    document.getElementById('difficulty-modal').style.display = 'flex';
+});
+
+document.getElementById('vs-player-btn').addEventListener('click', () => {
+    isPlayingBot = false;
     startGame();
+});
+
+document.getElementById('easy-btn').addEventListener('click', () => {
+    botDifficulty = 'easy';
+    startGame();
+});
+
+document.getElementById('medium-btn').addEventListener('click', () => {
+    botDifficulty = 'medium';
+    startGame();
+});
+
+document.getElementById('hard-btn').addEventListener('click', () => {
+    botDifficulty = 'hard';
+    startGame();
+});
+
+document.getElementById('backToMainBtn').addEventListener('click', () => {
+    document.getElementById('local-choice-modal').style.display = 'none';
+    document.getElementById('start-modal').style.display = 'flex';
+});
+
+document.getElementById('backToCHoiceBtn').addEventListener('click', () => {
+    document.getElementById('difficulty-modal').style.display = 'none';
+    document.getElementById('local-choice-modal').style.display = 'flex';
 });
 
 document.getElementById('onlineModeBtn').addEventListener('click', () => {
