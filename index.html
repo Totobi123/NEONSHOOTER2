@@ -67,6 +67,7 @@ let gameActive = false;
 let playerHealth = 100;
 let difficulty = 'medium';
 let gameMode = 'normal';
+let brStartTime = 0;
 
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
@@ -202,28 +203,42 @@ window.addEventListener('click',(event)=>{
 });
 
 function spawnEnemies(){
+    // For BR mode, spawn initial batch of enemies
+    if(gameMode === 'br') {
+        for(let i = 0; i < 100; i++) {
+            const types = ['fast','tank','ranged','basic'];
+            const type = types[Math.floor(Math.random() * types.length)];
+            let spawnX = Math.random() * canvas.width;
+            let spawnY = Math.random() * canvas.height;
+            enemies.push(new Enemy(spawnX, spawnY, type));
+        }
+    }
+    
     spawnInterval = setInterval(() => {
+        if(!gameActive) return;
         const types = ['fast','tank','ranged','basic'];
         const type = types[Math.floor(Math.random() * types.length)];
         let spawnX = Math.random() * canvas.width;
-        let spawnY = -30;
+        let spawnY = gameMode === 'br' ? Math.random() * canvas.height : -30;
         enemies.push(new Enemy(spawnX, spawnY, type));
 
-        // 50% chance to drop power-up on enemy spawn
-        if(Math.random() < 0.5){
+        // 50% chance to drop power-up on enemy spawn (normal mode only)
+        if(gameMode === 'normal' && Math.random() < 0.5){
             const puTypes = ['health','shield','rapid','bomb'];
             powerUps.push(new PowerUp(spawnX, spawnY, puTypes[Math.floor(Math.random()*puTypes.length)]));
         }
-    }, difficulty==='easy'?1500 : difficulty==='medium'?1000 : 700);
+    }, gameMode === 'br' ? 500 : (difficulty==='easy'?1500 : difficulty==='medium'?1000 : 700));
 
-    // Additional random power-ups every 6 seconds
-    setInterval(() => {
-        if(!gameActive) return;
-        const puTypes = ['health','shield','rapid','bomb'];
-        const x = Math.random() * (canvas.width-40) + 20;
-        const y = Math.random() * (canvas.height-40) + 20;
-        powerUps.push(new PowerUp(x, y, puTypes[Math.floor(Math.random()*puTypes.length)]));
-    }, 6000);
+    // Additional random power-ups every 6 seconds (normal mode only)
+    if(gameMode === 'normal') {
+        setInterval(() => {
+            if(!gameActive) return;
+            const puTypes = ['health','shield','rapid','bomb'];
+            const x = Math.random() * (canvas.width-40) + 20;
+            const y = Math.random() * (canvas.height-40) + 20;
+            powerUps.push(new PowerUp(x, y, puTypes[Math.floor(Math.random()*puTypes.length)]));
+        }, 6000);
+    }
 }
 
 function init(){
@@ -234,6 +249,7 @@ function init(){
     gameActive=true;
     weaponHud.innerText=`Weapon: ${weapons[currentWeaponIndex].name}`;
     modeHud.innerText=`Mode: ${gameMode === 'br' ? 'Battle Royale' : 'Normal'}`;
+    if(gameMode === 'br') brStartTime = Date.now();
 }
 
 function animate(){
@@ -292,7 +308,8 @@ function animate(){
             });
         });
         
-        if(enemies.length <= 1) {
+        const elapsedTime = Date.now() - brStartTime;
+        if(elapsedTime > 10000 && enemies.length <= 1) {
             score += 500;
             scoreEl.innerText=`Score: ${score}`;
             cancelAnimationFrame(animationId);
