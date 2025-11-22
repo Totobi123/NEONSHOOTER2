@@ -26,9 +26,10 @@ No build process required - just serve the HTML file directly.
   - Health bars for both players
   - Bot AI with adaptive difficulty
 - **Controls (2-Player Mode):**
-  - Keyboard & Mouse Registration: Players can register their own keyboard and mouse for custom controls
+  - Multi-Keyboard Detection: System detects and names connected keyboards (Keyboard A, B, C, etc.)
+  - Smart Assignment: Players select which keyboard to use, other auto-assigned to Player 2
   - Default Controls: Player 1 (WASD + Click), Player 2 (Arrow Keys + CTRL)
-  - Custom Controls: Each player registers their keyboard keys and mouse button during setup
+  - Fallback Option: If only 1 keyboard, use default controls
 - **Bot Mode:**
   - Easy: Slower movement speed (2.5x), longer fire rate (800ms)
   - Medium: Balanced speed (4x), standard fire rate (500ms)
@@ -50,6 +51,8 @@ No build process required - just serve the HTML file directly.
 - 2025-11-22: Added Bot Mode with 3 difficulty levels
 - 2025-11-22: Bot AI automatically moves toward and shoots at player
 - 2025-11-22: Added choice screen between vs Bot and vs Player (local)
-- 2025-11-22: Added keyboard & mouse registration system for 2-player mode
-- 2025-11-22: Players can register custom keyboard and mouse controls before game
-- 2025-11-22: Option to use default controls (WASD + Arrows) or custom registered controls
+- 2025-11-22: Added multi-keyboard detection system for 2-player mode
+- 2025-11-22: System detects multiple physical keyboards and assigns names (Keyboard A, B, etc.)
+- 2025-11-22: Players select which keyboard to use, other auto-assigned to Player 2
+- 2025-11-22: Mouse registration for both players in calibration phase
+- 2025-11-22: Fallback to default controls if only 1 keyboard detected
