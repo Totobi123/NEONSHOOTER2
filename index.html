@@ -41,7 +41,7 @@
         <p>1v1 PvP - Click to Start</p>
         <button id="localModeBtn" class="mode-btn">LOCAL 1v1</button>
         <button id="onlineModeBtn" class="mode-btn">ONLINE 1v1</button>
-        <p style="margin-top:20px; font-size:0.9rem;">P1: WASD to Move, ENTER to Shoot | P2: Arrow Keys to Move, SHIFT to Shoot</p>
+        <p style="margin-top:20px; font-size:0.9rem;">P1: WASD to Move, Click to Shoot | P2: Arrow Keys to Move, SHIFT to Shoot</p>
     </div>
     
     <div id="local-choice-modal" class="menu-box" style="display: none;">
@@ -61,6 +61,33 @@
         <button id="backToCHoiceBtn" class="mode-btn" style="background: linear-gradient(45deg, #666, #444); margin-top: 20px;">BACK</button>
     </div>
     
+    <div id="detection-modal" class="menu-box" style="display: none;">
+        <h1>Detect Keyboards</h1>
+        <p>Press keys on your keyboards to detect them...</p>
+        <div style="margin-top: 20px; font-size: 1rem; color: #0f0;">
+            <div id="keyboard-list" style="text-align: left; margin: 20px auto; width: 300px; max-height: 150px; overflow-y: auto; border: 1px solid #0f0; padding: 10px; border-radius: 5px;">
+                <p style="color: #888;">Waiting for keyboard input...</p>
+            </div>
+        </div>
+        <p id="detection-status" style="margin-top: 20px; font-size: 0.85rem; color: #ff9800;">Detected 0 keyboards</p>
+        <button id="continueDetectionBtn" class="mode-btn" style="background: linear-gradient(45deg, #4CAF50, #45a049); margin-top: 20px; display: none;">CONTINUE (Found 2+)</button>
+        <button id="skipDetectionBtn" class="mode-btn" style="background: linear-gradient(45deg, #666, #444); margin-top: 20px;">USE DEFAULTS</button>
+    </div>
+    
+    <div id="calibration-modal" class="menu-box" style="display: none;">
+        <h1 id="calibration-title">Assign Keyboards</h1>
+        <p id="calibration-text">Select which keyboard for Player 1:</p>
+        <div style="margin-top: 20px; text-align: left; margin-left: 50px;">
+            <div id="keyboard-selector" style="margin-bottom: 20px;"></div>
+        </div>
+        <div style="margin-top: 20px; font-size: 1rem; color: #0f0;">
+            <p id="p1-keyboard-status">Keyboard: <span style="color: #888;">Select above</span></p>
+            <p id="p1-mouse-status">Mouse: <span style="color: #888;">Click anywhere</span></p>
+            <p id="p2-keyboard-status" style="margin-top: 15px; display: none;">Keyboard: <span style="color: #0f0;">✓ Auto-assigned</span></p>
+            <p id="p2-mouse-status" style="display: none;">Mouse: <span style="color: #888;">Click anywhere</span></p>
+        </div>
+        <button id="skipCalibrationBtn" class="mode-btn" style="background: linear-gradient(45deg, #666, #444); margin-top: 20px;">USE DEFAULTS (WASD + Arrows)</button>
+    </div>
     
     <div id="online-modal" class="menu-box" style="display: none;">
         <h1>Online 1v1</h1>
@@ -111,6 +138,21 @@ let botDifficulty = 'medium'; // 'easy', 'medium', 'hard'
 let animationId;
 let isPlayingBot = false;
 
+// Control registration
+let calibrationMode = false;
+let detectionMode = false;
+let calibrationStep = 0; // 0 = select P1 kbd, 1 = P1 mouse, 2 = P2 mouse
+let p1RegisteredKeys = new Set();
+let p1RegisteredMouseButton = null;
+let p2RegisteredKeys = new Set();
+let p2RegisteredMouseButton = null;
+let useDefaultControls = false;
+let detectingKeyboards = true;
+let detectedKeyboards = {}; // {keyboardId: {id, lastKeyCode, keyCount, name}}
+let nextKeyboardId = 0;
+let p1SelectedKeyboardId = null;
+let p2SelectedKeyboardId = null;
+let keyboardDetectionTimeout = null;
 
 const weapons = [
     { name: 'Pistol', bullets: 1, speed: 15, damage: 10, fireRate: 200 },
@@ -215,21 +257,59 @@ let projectiles = [];
 const keys = {};
 
 window.addEventListener('keydown', (e) => {
-    if(e.code === 'Enter') {
-        if(!gameActive || gamePaused) return;
-        const now = Date.now();
-        const weapon = weapons[player1.currentWeaponIndex];
-        const fireRate = weapon.fireRate;
-        if(now - player1.lastShotTime < fireRate) return;
-        player1.lastShotTime = now;
-        const angle = Math.atan2(event.clientY - player1.y, event.clientX - player1.x);
-        for(let i = 0; i < weapon.bullets; i++) {
-            let spreadAngle = angle;
-            if(weapon.name === 'Shotgun') spreadAngle += (Math.random() - 0.5) * weapon.spread;
-            const velocity = {x: Math.cos(spreadAngle) * weapon.speed, y: Math.sin(spreadAngle) * weapon.speed};
-            projectiles.push(new Projectile(player1.x, player1.y, 5, player1.color, velocity, weapon.damage, player1));
+    if(detectionMode && detectingKeyboards) {
+        // Detect keyboard by proximity - keys pressed close in time are from same keyboard
+        const currentTime = Date.now();
+        let assignedKeyboard = null;
+        
+        // Check if this key belongs to an existing keyboard (within 300ms of last key)
+        for(let id in detectedKeyboards) {
+            const kbd = detectedKeyboards[id];
+            if(currentTime - kbd.lastKeyCode < 300) {
+                assignedKeyboard = id;
+                break;
+            }
         }
+        
+        // If no matching keyboard, create new one
+        if(assignedKeyboard === null) {
+            assignedKeyboard = nextKeyboardId++;
+            const chars = 'ABCDEFGH';
+            detectedKeyboards[assignedKeyboard] = {
+                id: assignedKeyboard,
+                lastKeyCode: currentTime,
+                keyCount: 1,
+                name: 'Keyboard ' + chars[assignedKeyboard]
+            };
+        } else {
+            detectedKeyboards[assignedKeyboard].lastKeyCode = currentTime;
+            detectedKeyboards[assignedKeyboard].keyCount++;
+        }
+        
+        updateKeyboardList();
+        
+        // Restart timeout
+        clearTimeout(keyboardDetectionTimeout);
+        keyboardDetectionTimeout = setTimeout(() => {
+            if(Object.keys(detectedKeyboards).length >= 2) {
+                proceedToCalibration();
+            }
+        }, 3000);
+        
         return;
+    }
+    
+    if(calibrationMode && calibrationStep < 2) {
+        // Store keys for selected player
+        if(p1SelectedKeyboardId !== null && calibrationStep === 0) {
+            p1RegisteredKeys.add(e.code);
+            document.getElementById('p1-keyboard-status').innerHTML = 'Keyboard: <span style="color: #0f0;">✓ Keys detected</span>';
+            calibrationStep = 1;
+        } else if(p2SelectedKeyboardId !== null && calibrationStep === 1) {
+            p2RegisteredKeys.add(e.code);
+            document.getElementById('p2-keyboard-status').innerHTML = 'Keyboard: <span style="color: #0f0;">✓ Keys detected</span>';
+            calibrationStep = 2;
+        }
     }
     
     keys[e.code] = true;
@@ -238,6 +318,17 @@ window.addEventListener('keydown', (e) => {
 window.addEventListener('keyup', (e) => keys[e.code] = false);
 
 window.addEventListener('click', (event) => {
+    if(calibrationMode && calibrationStep === 1) {
+        p1RegisteredMouseButton = true;
+        document.getElementById('p1-mouse-status').innerHTML = 'Mouse: <span style="color: #0f0;">✓ Registered</span>';
+        calibrationStep = 2;
+    } else if(calibrationMode && calibrationStep === 2) {
+        p2RegisteredMouseButton = true;
+        document.getElementById('p2-mouse-status').innerHTML = 'Mouse: <span style="color: #0f0;">✓ Registered</span>';
+        setTimeout(completeCalibration, 500);
+        return;
+    }
+    
     if(!gameActive || gamePaused) return;
     const now = Date.now();
     const weapon = weapons[player1.currentWeaponIndex];
@@ -370,6 +461,7 @@ function startGame() {
     document.getElementById('start-modal').style.display = 'none';
     document.getElementById('local-choice-modal').style.display = 'none';
     document.getElementById('difficulty-modal').style.display = 'none';
+    document.getElementById('calibration-modal').style.display = 'none';
     document.getElementById('online-modal').style.display = 'none';
     document.getElementById('pause-btn').style.display = 'block';
     updateHealthBars();
@@ -394,15 +486,131 @@ function togglePause() {
     document.getElementById('pause-modal').style.display = gamePaused ? 'flex' : 'none';
 }
 
+function startDetection() {
+    detectionMode = true;
+    detectingKeyboards = true;
+    detectedKeyboards = {};
+    nextKeyboardId = 0;
+    p1SelectedKeyboardId = null;
+    p2SelectedKeyboardId = null;
+    
+    document.getElementById('local-choice-modal').style.display = 'none';
+    document.getElementById('detection-modal').style.display = 'flex';
+    updateKeyboardList();
+    
+    // Stop detection after 10 seconds of inactivity
+    clearTimeout(keyboardDetectionTimeout);
+    keyboardDetectionTimeout = setTimeout(() => {
+        if(Object.keys(detectedKeyboards).length >= 2) {
+            proceedToCalibration();
+        } else {
+            updateDetectionStatus();
+        }
+    }, 10000);
+}
+
+function updateKeyboardList() {
+    const list = document.getElementById('keyboard-list');
+    if(Object.keys(detectedKeyboards).length === 0) {
+        list.innerHTML = '<p style="color: #888;">Waiting for keyboard input...</p>';
+        return;
+    }
+    
+    let html = '';
+    for(let id in detectedKeyboards) {
+        const kbd = detectedKeyboards[id];
+        html += `<p style="margin: 5px 0; color: #0f0;">▌ ${kbd.name} (${kbd.keyCount} keys)</p>`;
+    }
+    list.innerHTML = html;
+    updateDetectionStatus();
+}
+
+function updateDetectionStatus() {
+    const count = Object.keys(detectedKeyboards).length;
+    const status = document.getElementById('detection-status');
+    const btn = document.getElementById('continueDetectionBtn');
+    
+    status.innerText = `Detected ${count} keyboard${count !== 1 ? 's' : ''}`;
+    if(count >= 2) {
+        btn.style.display = 'block';
+        status.style.color = '#0f0';
+    } else {
+        btn.style.display = 'none';
+        status.style.color = '#ff9800';
+    }
+}
+
+function proceedToCalibration() {
+    detectionMode = false;
+    detectingKeyboards = false;
+    clearTimeout(keyboardDetectionTimeout);
+    
+    if(Object.keys(detectedKeyboards).length < 2) {
+        alert('Only 1 keyboard detected. Click USE DEFAULTS to continue with keyboard 1.');
+        return;
+    }
+    
+    document.getElementById('detection-modal').style.display = 'none';
+    document.getElementById('calibration-modal').style.display = 'flex';
+    buildKeyboardSelector();
+}
+
+function buildKeyboardSelector() {
+    const selector = document.getElementById('keyboard-selector');
+    let html = '';
+    for(let id in detectedKeyboards) {
+        const kbd = detectedKeyboards[id];
+        html += `<label style="display: block; margin: 10px 0; cursor: pointer;">
+                    <input type="radio" name="p1-keyboard" value="${id}" style="cursor: pointer;"> ${kbd.name}
+                 </label>`;
+    }
+    selector.innerHTML = html;
+    
+    // Add change listener
+    document.querySelectorAll('input[name="p1-keyboard"]').forEach(radio => {
+        radio.addEventListener('change', (e) => {
+            p1SelectedKeyboardId = e.target.value;
+            document.getElementById('p1-keyboard-status').innerHTML = `Keyboard: <span style="color: #0f0;">✓ ${detectedKeyboards[p1SelectedKeyboardId].name}</span>`;
+            
+            // Auto-assign other keyboard to P2
+            for(let id in detectedKeyboards) {
+                if(id !== p1SelectedKeyboardId) {
+                    p2SelectedKeyboardId = id;
+                    break;
+                }
+            }
+            if(p2SelectedKeyboardId) {
+                document.getElementById('p2-keyboard-status').innerHTML = `Keyboard: <span style="color: #0f0;">✓ ${detectedKeyboards[p2SelectedKeyboardId].name}</span>`;
+            }
+        });
+    });
+}
+
+function startCalibration() {
+    startDetection();
+}
+
+function completeCalibration() {
+    calibrationMode = false;
+    detectionMode = false;
+    isPlayingBot = false;
+    startGame();
+}
 
 function goHome() {
     gameActive = false;
     gamePaused = false;
+    calibrationMode = false;
+    detectionMode = false;
+    detectingKeyboards = false;
+    clearTimeout(keyboardDetectionTimeout);
     cancelAnimationFrame(animationId);
     document.getElementById('start-modal').style.display = 'flex';
     document.getElementById('online-modal').style.display = 'none';
     document.getElementById('local-choice-modal').style.display = 'none';
     document.getElementById('difficulty-modal').style.display = 'none';
+    document.getElementById('detection-modal').style.display = 'none';
+    document.getElementById('calibration-modal').style.display = 'none';
     document.getElementById('game-over-modal').style.display = 'none';
     document.getElementById('pause-modal').style.display = 'none';
     document.getElementById('pause-btn').style.display = 'none';
@@ -423,8 +631,7 @@ document.getElementById('vs-bot-btn').addEventListener('click', () => {
 });
 
 document.getElementById('vs-player-btn').addEventListener('click', () => {
-    isPlayingBot = false;
-    startGame();
+    startCalibration();
 });
 
 document.getElementById('easy-btn').addEventListener('click', () => {
@@ -491,6 +698,27 @@ document.getElementById('backFromOnlineBtn').addEventListener('click', () => {
 document.getElementById('cancelMatchBtn').addEventListener('click', () => {
     document.getElementById('matching-modal').style.display = 'none';
     document.getElementById('online-modal').style.display = 'flex';
+});
+
+document.getElementById('skipDetectionBtn').addEventListener('click', () => {
+    useDefaultControls = true;
+    detectionMode = false;
+    detectingKeyboards = false;
+    clearTimeout(keyboardDetectionTimeout);
+    isPlayingBot = false;
+    document.getElementById('detection-modal').style.display = 'none';
+    startGame();
+});
+
+document.getElementById('continueDetectionBtn').addEventListener('click', proceedToCalibration);
+
+document.getElementById('skipCalibrationBtn').addEventListener('click', () => {
+    useDefaultControls = true;
+    calibrationMode = false;
+    detectionMode = false;
+    isPlayingBot = false;
+    document.getElementById('calibration-modal').style.display = 'none';
+    startGame();
 });
 
 document.getElementById('homeBtn').addEventListener('click', goHome);
