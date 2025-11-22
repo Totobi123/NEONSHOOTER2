@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Neon Defender 1v1</title>
+    <!-- Firebase Library -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js"></script>
     <style>
         body { margin: 0; padding: 0; background-color: #000; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; user-select: none; }
         #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: flex; flex-direction: column; justify-content: center; align-items: center; }
@@ -258,6 +261,142 @@ const keys = {};
 window.lastMouseX = canvas.width / 2;
 window.lastMouseY = canvas.height / 2;
 
+// ===== FIREBASE CONFIG =====
+// IMPORTANT: Add your Firebase config here!
+// Get it from Firebase Console > Project Settings
+const firebaseConfig = {
+    apiKey: "AIzaSyDEMO_PLACEHOLDER_REPLACE_ME", // Get from Firebase
+    authDomain: "neon-defender-demo.firebaseapp.com", // Get from Firebase
+    databaseURL: "https://neon-defender-demo.firebaseio.com", // Get from Firebase
+    projectId: "neon-defender-demo", // Get from Firebase
+    storageBucket: "neon-defender-demo.appspot.com",
+    messagingSenderId: "123456789",
+    appId: "1:123456789:web:abc123def456"
+};
+
+// Firebase variables
+let firebaseApp = null;
+let firebaseDB = null;
+let currentRoomId = null;
+let isHost = false; // true if you created room, false if joining
+let opponentData = null;
+let gameDataRef = null;
+let opponentRef = null;
+
+// Initialize Firebase
+function initializeFirebase() {
+    try {
+        firebaseApp = firebase.initializeApp(firebaseConfig);
+        firebaseDB = firebase.database();
+        console.log('Firebase initialized successfully');
+        return true;
+    } catch(e) {
+        console.error('Firebase init error:', e);
+        alert('Firebase not configured. Please add your Firebase config to index.html');
+        return false;
+    }
+}
+
+// Create online room (random match)
+function createOnlineRoom() {
+    if(!firebaseDB) {
+        alert('Firebase not initialized. Check console for errors.');
+        return;
+    }
+    
+    isHost = true;
+    currentRoomId = 'room_' + Math.random().toString(36).substr(2, 8).toUpperCase();
+    
+    // Set up game data path
+    gameDataRef = firebaseDB.ref('games/' + currentRoomId + '/player1');
+    opponentRef = firebaseDB.ref('games/' + currentRoomId + '/player2');
+    
+    // Listen for opponent joining
+    opponentRef.on('value', (snapshot) => {
+        if(snapshot.val()) {
+            opponentData = snapshot.val();
+        }
+    });
+    
+    // Show code and wait
+    document.getElementById('online-modal').style.display = 'none';
+    document.getElementById('matching-modal').style.display = 'flex';
+    document.getElementById('matching-text').innerText = 'Your Code: ' + currentRoomId.substring(5) + '\n\nWaiting for opponent...\n(Share this code)';
+    
+    // Auto-start after 30 seconds with bot if no opponent
+    setTimeout(() => {
+        if(!opponentData) {
+            console.log('No opponent found, starting with bot');
+            cleanupFirebaseGame();
+            isPlayingBot = true;
+            startGame();
+        }
+    }, 30000);
+}
+
+// Join online room (code match)
+function joinOnlineRoom(code) {
+    if(!firebaseDB) {
+        alert('Firebase not initialized. Check console for errors.');
+        return;
+    }
+    
+    isHost = false;
+    currentRoomId = 'room_' + code;
+    
+    gameDataRef = firebaseDB.ref('games/' + currentRoomId + '/player2');
+    opponentRef = firebaseDB.ref('games/' + currentRoomId + '/player1');
+    
+    // Listen for opponent
+    opponentRef.on('value', (snapshot) => {
+        if(snapshot.val()) {
+            opponentData = snapshot.val();
+        }
+    });
+    
+    // Show waiting screen
+    document.getElementById('online-modal').style.display = 'none';
+    document.getElementById('matching-modal').style.display = 'flex';
+    document.getElementById('matching-text').innerText = 'Connecting to: ' + code + '\n\nWaiting for opponent...';
+    
+    // Timeout if room doesn't exist
+    setTimeout(() => {
+        if(!opponentData) {
+            alert('Room not found or opponent disconnected');
+            cleanupFirebaseGame();
+            document.getElementById('matching-modal').style.display = 'none';
+            document.getElementById('online-modal').style.display = 'flex';
+        }
+    }, 15000);
+}
+
+// Sync game state with opponent
+function syncGameStateOnline() {
+    if(!gameDataRef || !gameActive) return;
+    
+    gameDataRef.set({
+        x: player1.x,
+        y: player1.y,
+        health: player1.health,
+        projectiles: projectiles
+            .filter(p => p.owner === player1)
+            .map(p => ({x: p.x, y: p.y, vx: p.velocity.x, vy: p.velocity.y, damage: p.damage}))
+    }).catch(e => console.error('Sync error:', e));
+}
+
+// Clean up Firebase when game ends
+function cleanupFirebaseGame() {
+    if(gameDataRef) {
+        gameDataRef.remove();
+        gameDataRef.off();
+    }
+    if(opponentRef) {
+        opponentRef.off();
+    }
+    currentRoomId = null;
+    opponentData = null;
+}
+
 window.addEventListener('keydown', (e) => {
     if(detectionMode && detectingKeyboards) {
         // Detect keyboard by proximity - keys pressed close in time are from same keyboard
@@ -400,6 +539,17 @@ function animate() {
     
     if(!gamePaused) {
         player1.update(keys);
+        
+        // Sync online game state
+        if(currentRoomId) {
+            syncGameStateOnline();
+            if(opponentData) {
+                player2.x = opponentData.x || player2.x;
+                player2.y = opponentData.y || player2.y;
+                player2.health = opponentData.health || player2.health;
+            }
+        }
+        
         if(isPlayingBot) {
             bot.update(player1);
             const opponent = bot;
@@ -479,7 +629,14 @@ function startGame() {
     if(isPlayingBot) {
         bot = new Bot(canvas.width * 3/4, canvas.height/2, 15, '#f0f', botDifficulty);
         document.getElementById('p2-label').innerText = 'Bot (' + botDifficulty.toUpperCase() + ')';
+    } else if(currentRoomId) {
+        // Online mode
+        player2.health = 100;
+        player2.x = canvas.width * 3/4;
+        player2.y = canvas.height/2;
+        document.getElementById('p2-label').innerText = 'Online Player';
     } else {
+        // Local 2-player
         player2.health = 100;
         player2.x = canvas.width * 3/4;
         player2.y = canvas.height/2;
@@ -491,6 +648,7 @@ function startGame() {
     document.getElementById('difficulty-modal').style.display = 'none';
     document.getElementById('calibration-modal').style.display = 'none';
     document.getElementById('online-modal').style.display = 'none';
+    document.getElementById('matching-modal').style.display = 'none';
     document.getElementById('pause-btn').style.display = 'block';
     updateHealthBars();
     animate();
@@ -499,7 +657,10 @@ function startGame() {
 function endGame(winner) {
     gameActive = false;
     cancelAnimationFrame(animationId);
-    if(isPlayingBot) {
+    if(currentRoomId) {
+        cleanupFirebaseGame();
+        document.getElementById('winner-text').innerText = winner === player1 ? 'You Win!' : 'Opponent Wins!';
+    } else if(isPlayingBot) {
         document.getElementById('winner-text').innerText = winner === player1 ? 'You Win!' : 'Bot Wins!';
     } else {
         document.getElementById('winner-text').innerText = winner === player1 ? 'Player 1 Wins!' : 'Player 2 Wins!';
@@ -632,6 +793,7 @@ function goHome() {
     detectionMode = false;
     detectingKeyboards = false;
     clearTimeout(keyboardDetectionTimeout);
+    if(currentRoomId) cleanupFirebaseGame();
     cancelAnimationFrame(animationId);
     document.getElementById('start-modal').style.display = 'flex';
     document.getElementById('online-modal').style.display = 'none';
@@ -639,6 +801,7 @@ function goHome() {
     document.getElementById('difficulty-modal').style.display = 'none';
     document.getElementById('detection-modal').style.display = 'none';
     document.getElementById('calibration-modal').style.display = 'none';
+    document.getElementById('matching-modal').style.display = 'none';
     document.getElementById('game-over-modal').style.display = 'none';
     document.getElementById('pause-modal').style.display = 'none';
     document.getElementById('pause-btn').style.display = 'none';
@@ -693,12 +856,8 @@ document.getElementById('onlineModeBtn').addEventListener('click', () => {
 });
 
 document.getElementById('randomMatchBtn').addEventListener('click', () => {
-    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-    localStorage.setItem('matchCode', code);
-    document.getElementById('online-modal').style.display = 'none';
-    document.getElementById('matching-modal').style.display = 'flex';
-    document.getElementById('matching-text').innerText = 'Your Code: ' + code + '\nWaiting for opponent...';
-    setTimeout(startGame, 3000);
+    if(!initializeFirebase()) return;
+    createOnlineRoom();
 });
 
 document.getElementById('codeMatchBtn').addEventListener('click', () => {
@@ -710,11 +869,8 @@ document.getElementById('codeMatchBtn').addEventListener('click', () => {
 document.getElementById('codeConnectBtn').addEventListener('click', () => {
     const code = document.getElementById('codeInput').value.toUpperCase();
     if(code.length < 3) { alert('Code must be at least 3 characters'); return; }
-    localStorage.setItem('matchCode', code);
-    document.getElementById('online-modal').style.display = 'none';
-    document.getElementById('matching-modal').style.display = 'flex';
-    document.getElementById('matching-text').innerText = 'Connecting with code: ' + code + '...';
-    setTimeout(startGame, 2000);
+    if(!initializeFirebase()) return;
+    joinOnlineRoom(code);
 });
 
 document.getElementById('backFromOnlineBtn').addEventListener('click', () => {
@@ -724,8 +880,10 @@ document.getElementById('backFromOnlineBtn').addEventListener('click', () => {
 });
 
 document.getElementById('cancelMatchBtn').addEventListener('click', () => {
+    cleanupFirebaseGame();
     document.getElementById('matching-modal').style.display = 'none';
     document.getElementById('online-modal').style.display = 'flex';
+    document.getElementById('code-section').style.display = 'none';
 });
 
 document.getElementById('skipDetectionBtn').addEventListener('click', () => {

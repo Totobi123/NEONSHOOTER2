@@ -47,7 +47,6 @@ No build process required - just serve the HTML file directly.
 - 2025-11-22: Added pause functionality with ESC key
 - 2025-11-22: Added home buttons to return to menu
 - 2025-11-22: Added Local 1v1 mode (fully functional)
-- 2025-11-22: Added Online 1v1 UI (random match + code-based matchmaking)
 - 2025-11-22: Added Bot Mode with 3 difficulty levels
 - 2025-11-22: Bot AI automatically moves toward and shoots at player
 - 2025-11-22: Added choice screen between vs Bot and vs Player (local)
@@ -56,3 +55,13 @@ No build process required - just serve the HTML file directly.
 - 2025-11-22: Players select which keyboard to use, other auto-assigned to Player 2
 - 2025-11-22: Mouse registration for both players in calibration phase
 - 2025-11-22: Fallback to default controls if only 1 keyboard detected
+- 2025-11-22: **NEW: Firebase Online Multiplayer** - Real-time 1v1 play across the internet
+- 2025-11-22: Implemented random match (generates code) and code-based joining
+- 2025-11-22: Real-time game state sync (positions, health, projectiles)
+- 2025-11-22: Auto-fallback to Bot if opponent doesn't join in 30 seconds
+
+## Firebase Online Multiplayer Setup
+- Online mode uses Firebase Realtime Database for real-time game sync
+- Each match creates a room with a unique code
+- Player 1 shares code with Player 2, both connect and play live
+- See `FIREBASE_SETUP.md` for complete setup instructions
