@@ -41,7 +41,7 @@
         <p>1v1 PvP - Click to Start</p>
         <button id="localModeBtn" class="mode-btn">LOCAL 1v1</button>
         <button id="onlineModeBtn" class="mode-btn">ONLINE 1v1</button>
-        <p style="margin-top:20px; font-size:0.9rem;">P1: WASD to Move, Click to Shoot | P2: Arrow Keys to Move, CTRL to Shoot</p>
+        <p style="margin-top:20px; font-size:0.9rem;">P1: WASD to Move, Click to Shoot | P2: Arrow Keys to Move, SHIFT to Shoot</p>
     </div>
     
     <div id="local-choice-modal" class="menu-box" style="display: none;">
@@ -345,7 +345,7 @@ window.addEventListener('click', (event) => {
 });
 
 window.addEventListener('keydown', (e) => {
-    if(e.code === 'ControlLeft' || e.code === 'ControlRight') {
+    if(e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
         if(!gameActive || gamePaused) return;
         const now = Date.now();
         const weapon = weapons[player2.currentWeaponIndex];
