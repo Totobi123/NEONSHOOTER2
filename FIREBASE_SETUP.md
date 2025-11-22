@@ -55,10 +55,7 @@ const firebaseConfig = {
   "rules": {
     "games": {
       ".read": true,
-      ".write": true,
-      "$roomId": {
-        ".validate": "newData.hasChildren(['player1', 'player2'])"
-      }
+      ".write": true
     }
   }
 }
