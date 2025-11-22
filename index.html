@@ -41,7 +41,7 @@
         <p>1v1 PvP - Click to Start</p>
         <button id="localModeBtn" class="mode-btn">LOCAL 1v1</button>
         <button id="onlineModeBtn" class="mode-btn">ONLINE 1v1</button>
-        <p style="margin-top:20px; font-size:0.9rem;">P1: WASD to Move, Click to Shoot | P2: Arrow Keys to Move, SHIFT to Shoot</p>
+        <p style="margin-top:20px; font-size:0.9rem;">P1: WASD to Move, Click or ENTER to Shoot | P2: Arrow Keys to Move, SHIFT to Shoot</p>
     </div>
     
     <div id="local-choice-modal" class="menu-box" style="display: none;">
@@ -255,6 +255,8 @@ let player2 = new Player(canvas.width * 3/4, canvas.height/2, 15, '#f0f', true);
 let bot = null;
 let projectiles = [];
 const keys = {};
+window.lastMouseX = canvas.width / 2;
+window.lastMouseY = canvas.height / 2;
 
 window.addEventListener('keydown', (e) => {
     if(detectionMode && detectingKeyboards) {
@@ -312,10 +314,34 @@ window.addEventListener('keydown', (e) => {
         }
     }
     
+    // Player 1 shoot with ENTER key
+    if(e.code === 'Enter') {
+        if(!gameActive || gamePaused) return;
+        const now = Date.now();
+        const weapon = weapons[player1.currentWeaponIndex];
+        const fireRate = weapon.fireRate;
+        if(now - player1.lastShotTime < fireRate) return;
+        player1.lastShotTime = now;
+        // Shoot towards mouse position (or center if mouse not tracked)
+        const angle = Math.atan2(window.lastMouseY - player1.y, window.lastMouseX - player1.x);
+        for(let i = 0; i < weapon.bullets; i++) {
+            let spreadAngle = angle;
+            if(weapon.name === 'Shotgun') spreadAngle += (Math.random() - 0.5) * weapon.spread;
+            const velocity = {x: Math.cos(spreadAngle) * weapon.speed, y: Math.sin(spreadAngle) * weapon.speed};
+            projectiles.push(new Projectile(player1.x, player1.y, 5, player1.color, velocity, weapon.damage, player1));
+        }
+        return;
+    }
+    
     keys[e.code] = true;
     if(e.code === 'Escape') togglePause();
 });
 window.addEventListener('keyup', (e) => keys[e.code] = false);
+
+window.addEventListener('mousemove', (event) => {
+    window.lastMouseX = event.clientX;
+    window.lastMouseY = event.clientY;
+});
 
 window.addEventListener('click', (event) => {
     if(calibrationMode && calibrationStep === 1) {
