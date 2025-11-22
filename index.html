@@ -61,6 +61,19 @@
         <button id="backToCHoiceBtn" class="mode-btn" style="background: linear-gradient(45deg, #666, #444); margin-top: 20px;">BACK</button>
     </div>
     
+    <div id="calibration-modal" class="menu-box" style="display: none;">
+        <h1 id="calibration-title">Register Controls</h1>
+        <p id="calibration-text">Player 1: Press any key on your keyboard</p>
+        <div style="margin-top: 20px; font-size: 1rem; color: #0f0;">
+            <p id="p1-keyboard-status">Keyboard: <span style="color: #888;">Waiting...</span></p>
+            <p id="p1-mouse-status">Mouse: <span style="color: #888;">Click anywhere</span></p>
+            <p id="p2-keyboard-status" style="margin-top: 15px; display: none;">Keyboard: <span style="color: #888;">Waiting...</span></p>
+            <p id="p2-mouse-status" style="display: none;">Mouse: <span style="color: #888;">Click anywhere</span></p>
+        </div>
+        <p id="calibration-hint" style="margin-top: 20px; font-size: 0.85rem; color: #ff9800;">Connect keyboard and mouse for Player 1 first, then Player 2</p>
+        <button id="skipCalibrationBtn" class="mode-btn" style="background: linear-gradient(45deg, #666, #444); margin-top: 20px;">USE DEFAULTS (WASD + Arrows)</button>
+    </div>
+    
     <div id="online-modal" class="menu-box" style="display: none;">
         <h1>Online 1v1</h1>
         <p>Connect with a Player:</p>
@@ -110,6 +123,15 @@ let botDifficulty = 'medium'; // 'easy', 'medium', 'hard'
 let animationId;
 let isPlayingBot = false;
 
+// Control registration
+let calibrationMode = false;
+let calibrationStep = 0; // 0 = P1 keyboard, 1 = P1 mouse, 2 = P2 keyboard, 3 = P2 mouse
+let p1RegisteredKeys = new Set();
+let p1RegisteredMouseButton = null;
+let p2RegisteredKeys = new Set();
+let p2RegisteredMouseButton = null;
+let useDefaultControls = false;
+
 const weapons = [
     { name: 'Pistol', bullets: 1, speed: 15, damage: 10, fireRate: 200 },
     { name: 'Shotgun', bullets: 6, speed: 12, damage: 15, spread: 0.3, fireRate: 500 },
@@ -126,16 +148,34 @@ class Player {
     }
     draw() { ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2, false); ctx.fillStyle = this.color; ctx.fill(); ctx.shadowBlur = 15; ctx.shadowColor = this.color; ctx.closePath(); ctx.shadowBlur = 0; }
     update(keys) {
-        if(this.isP2) {
-            if(keys['ArrowUp']) this.y -= this.speed;
-            if(keys['ArrowDown']) this.y += this.speed;
-            if(keys['ArrowLeft']) this.x -= this.speed;
-            if(keys['ArrowRight']) this.x += this.speed;
+        if(useDefaultControls) {
+            if(this.isP2) {
+                if(keys['ArrowUp']) this.y -= this.speed;
+                if(keys['ArrowDown']) this.y += this.speed;
+                if(keys['ArrowLeft']) this.x -= this.speed;
+                if(keys['ArrowRight']) this.x += this.speed;
+            } else {
+                if(keys['KeyW']) this.y -= this.speed;
+                if(keys['KeyS']) this.y += this.speed;
+                if(keys['KeyA']) this.x -= this.speed;
+                if(keys['KeyD']) this.x += this.speed;
+            }
         } else {
-            if(keys['KeyW']) this.y -= this.speed;
-            if(keys['KeyS']) this.y += this.speed;
-            if(keys['KeyA']) this.x -= this.speed;
-            if(keys['KeyD']) this.x += this.speed;
+            const registeredKeys = this.isP2 ? p2RegisteredKeys : p1RegisteredKeys;
+            for(let key of registeredKeys) {
+                if(key.includes('Up') || key.includes('W')) this.y -= this.speed;
+                if(key.includes('Down') || key.includes('S')) this.y += this.speed;
+                if(key.includes('Left') || key.includes('A')) this.x -= this.speed;
+                if(key.includes('Right') || key.includes('D')) this.x += this.speed;
+            }
+            for(let k in keys) {
+                if(registeredKeys.has(k) && keys[k]) {
+                    if(k.includes('Up') || k.includes('W')) this.y -= this.speed;
+                    if(k.includes('Down') || k.includes('S')) this.y += this.speed;
+                    if(k.includes('Left') || k.includes('A')) this.x -= this.speed;
+                    if(k.includes('Right') || k.includes('D')) this.x += this.speed;
+                }
+            }
         }
         
         if(this.x - this.radius < 0) this.x = this.radius;
@@ -195,12 +235,39 @@ let projectiles = [];
 const keys = {};
 
 window.addEventListener('keydown', (e) => {
+    if(calibrationMode) {
+        if(calibrationStep === 0) {
+            p1RegisteredKeys.add(e.code);
+            document.getElementById('p1-keyboard-status').innerHTML = 'Keyboard: <span style="color: #0f0;">✓ Registered (' + Array.from(p1RegisteredKeys).join(', ') + ')</span>';
+            calibrationStep = 1;
+            updateCalibrationDisplay();
+        } else if(calibrationStep === 2) {
+            p2RegisteredKeys.add(e.code);
+            document.getElementById('p2-keyboard-status').innerHTML = 'Keyboard: <span style="color: #0f0;">✓ Registered (' + Array.from(p2RegisteredKeys).join(', ') + ')</span>';
+            calibrationStep = 3;
+            updateCalibrationDisplay();
+        }
+        return;
+    }
     keys[e.code] = true;
     if(e.code === 'Escape') togglePause();
 });
 window.addEventListener('keyup', (e) => keys[e.code] = false);
 
 window.addEventListener('click', (event) => {
+    if(calibrationMode) {
+        if(calibrationStep === 1) {
+            p1RegisteredMouseButton = true;
+            document.getElementById('p1-mouse-status').innerHTML = 'Mouse: <span style="color: #0f0;">✓ Registered</span>';
+            calibrationStep = 2;
+            updateCalibrationDisplay();
+        } else if(calibrationStep === 3) {
+            p2RegisteredMouseButton = true;
+            document.getElementById('p2-mouse-status').innerHTML = 'Mouse: <span style="color: #0f0;">✓ Registered</span>';
+            setTimeout(completeCalibration, 500);
+        }
+        return;
+    }
     if(!gameActive || gamePaused) return;
     const now = Date.now();
     const weapon = weapons[player1.currentWeaponIndex];
@@ -333,6 +400,7 @@ function startGame() {
     document.getElementById('start-modal').style.display = 'none';
     document.getElementById('local-choice-modal').style.display = 'none';
     document.getElementById('difficulty-modal').style.display = 'none';
+    document.getElementById('calibration-modal').style.display = 'none';
     document.getElementById('online-modal').style.display = 'none';
     document.getElementById('pause-btn').style.display = 'block';
     updateHealthBars();
@@ -357,14 +425,53 @@ function togglePause() {
     document.getElementById('pause-modal').style.display = gamePaused ? 'flex' : 'none';
 }
 
+function startCalibration() {
+    calibrationMode = true;
+    calibrationStep = 0;
+    p1RegisteredKeys = new Set();
+    p1RegisteredMouseButton = null;
+    p2RegisteredKeys = new Set();
+    p2RegisteredMouseButton = null;
+    useDefaultControls = false;
+    
+    document.getElementById('local-choice-modal').style.display = 'none';
+    document.getElementById('calibration-modal').style.display = 'flex';
+    document.getElementById('p2-keyboard-status').style.display = 'none';
+    document.getElementById('p2-mouse-status').style.display = 'none';
+    updateCalibrationDisplay();
+}
+
+function updateCalibrationDisplay() {
+    const texts = [
+        'Player 1: Press any key on your keyboard',
+        'Player 1: Click your mouse button',
+        'Player 2: Press any key on your keyboard',
+        'Player 2: Click your mouse button'
+    ];
+    document.getElementById('calibration-text').innerText = texts[calibrationStep];
+    
+    if(calibrationStep >= 2) {
+        document.getElementById('p2-keyboard-status').style.display = 'block';
+        document.getElementById('p2-mouse-status').style.display = 'block';
+    }
+}
+
+function completeCalibration() {
+    calibrationMode = false;
+    isPlayingBot = false;
+    startGame();
+}
+
 function goHome() {
     gameActive = false;
     gamePaused = false;
+    calibrationMode = false;
     cancelAnimationFrame(animationId);
     document.getElementById('start-modal').style.display = 'flex';
     document.getElementById('online-modal').style.display = 'none';
     document.getElementById('local-choice-modal').style.display = 'none';
     document.getElementById('difficulty-modal').style.display = 'none';
+    document.getElementById('calibration-modal').style.display = 'none';
     document.getElementById('game-over-modal').style.display = 'none';
     document.getElementById('pause-modal').style.display = 'none';
     document.getElementById('pause-btn').style.display = 'none';
@@ -385,8 +492,7 @@ document.getElementById('vs-bot-btn').addEventListener('click', () => {
 });
 
 document.getElementById('vs-player-btn').addEventListener('click', () => {
-    isPlayingBot = false;
-    startGame();
+    startCalibration();
 });
 
 document.getElementById('easy-btn').addEventListener('click', () => {
@@ -453,6 +559,14 @@ document.getElementById('backFromOnlineBtn').addEventListener('click', () => {
 document.getElementById('cancelMatchBtn').addEventListener('click', () => {
     document.getElementById('matching-modal').style.display = 'none';
     document.getElementById('online-modal').style.display = 'flex';
+});
+
+document.getElementById('skipCalibrationBtn').addEventListener('click', () => {
+    useDefaultControls = true;
+    calibrationMode = false;
+    isPlayingBot = false;
+    document.getElementById('calibration-modal').style.display = 'none';
+    startGame();
 });
 
 document.getElementById('homeBtn').addEventListener('click', goHome);

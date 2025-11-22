@@ -26,8 +26,9 @@ No build process required - just serve the HTML file directly.
   - Health bars for both players
   - Bot AI with adaptive difficulty
 - **Controls (2-Player Mode):**
-  - Player 1: WASD to move, Click to shoot, CTRL for weapon switch
-  - Player 2: Arrow Keys to move, CTRL to shoot
+  - Keyboard & Mouse Registration: Players can register their own keyboard and mouse for custom controls
+  - Default Controls: Player 1 (WASD + Click), Player 2 (Arrow Keys + CTRL)
+  - Custom Controls: Each player registers their keyboard keys and mouse button during setup
 - **Bot Mode:**
   - Easy: Slower movement speed (2.5x), longer fire rate (800ms)
   - Medium: Balanced speed (4x), standard fire rate (500ms)
@@ -49,3 +50,6 @@ No build process required - just serve the HTML file directly.
 - 2025-11-22: Added Bot Mode with 3 difficulty levels
 - 2025-11-22: Bot AI automatically moves toward and shoots at player
 - 2025-11-22: Added choice screen between vs Bot and vs Player (local)
+- 2025-11-22: Added keyboard & mouse registration system for 2-player mode
+- 2025-11-22: Players can register custom keyboard and mouse controls before game
+- 2025-11-22: Option to use default controls (WASD + Arrows) or custom registered controls
