@@ -69,9 +69,9 @@ let difficulty = 'medium';
 let gameMode = 'normal';
 let brStartTime = 0;
 
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
-window.addEventListener('resize', () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; });
+canvas.width = window.innerWidth * 2;
+canvas.height = window.innerHeight * 2;
+window.addEventListener('resize', () => { canvas.width = window.innerWidth * 2; canvas.height = window.innerHeight * 2; });
 
 const weapons = [
     { name: 'Pistol', bullets: 1, speed: 15, damage: 10, fireRate: 200 },
@@ -81,14 +81,14 @@ const weapons = [
 let currentWeaponIndex = 0;
 let lastShotTime = 0;
 
-class Player { constructor(x, y, radius, color) { this.x = x; this.y = y; this.radius = radius; this.color = color; this.velocity = { x: 0, y: 0 }; this.speed = 5; this.shield = false; this.rapidFire = false; }
-    draw() { ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2,false); ctx.fillStyle=this.color; ctx.fill(); ctx.shadowBlur=15; ctx.shadowColor=this.color; ctx.closePath(); ctx.shadowBlur=0; }
-    update(keys){ if(keys['KeyW']||keys['ArrowUp']) this.y-=this.speed; if(keys['KeyS']||keys['ArrowDown']) this.y+=this.speed; if(keys['KeyA']||keys['ArrowLeft']) this.x-=this.speed; if(keys['KeyD']||keys['ArrowRight']) this.x+=this.speed; if(this.x-this.radius<0) this.x=this.radius; if(this.x+this.radius>canvas.width)this.x=canvas.width-this.radius; if(this.y-this.radius<0)this.y=this.radius; if(this.y+this.radius>canvas.height)this.y=canvas.height-this.radius; this.draw(); }
+class Player { constructor(x, y, radius, color) { this.x = x; this.y = y; this.radius = radius; this.color = color; this.velocity = { x: 0, y: 0 }; this.speed = 5; this.shield = false; this.rapidFire = false; this.cameraX = x; this.cameraY = y; }
+    draw() { ctx.beginPath(); ctx.arc(this.x - this.cameraX + window.innerWidth/2, this.y - this.cameraY + window.innerHeight/2, this.radius, 0, Math.PI*2,false); ctx.fillStyle=this.color; ctx.fill(); ctx.shadowBlur=15; ctx.shadowColor=this.color; ctx.closePath(); ctx.shadowBlur=0; }
+    update(keys){ if(keys['KeyW']||keys['ArrowUp']) this.y-=this.speed; if(keys['KeyS']||keys['ArrowDown']) this.y+=this.speed; if(keys['KeyA']||keys['ArrowLeft']) this.x-=this.speed; if(keys['KeyD']||keys['ArrowRight']) this.x+=this.speed; if(this.x-this.radius<0) this.x=this.radius; if(this.x+this.radius>canvas.width)this.x=canvas.width-this.radius; if(this.y-this.radius<0)this.y=this.radius; if(this.y+this.radius>canvas.height)this.y=canvas.height-this.radius; this.cameraX=this.x; this.cameraY=this.y; this.draw(); }
 }
 
 class Projectile { constructor(x,y,radius,color,velocity,damage,owner=null){ this.x=x; this.y=y; this.radius=radius; this.color=color; this.velocity=velocity; this.damage=damage; this.owner=owner; }
-    draw(){ ctx.beginPath(); ctx.arc(this.x,this.y,this.radius,0,Math.PI*2,false); ctx.fillStyle=this.color; ctx.fill(); ctx.closePath(); }
-    update(){ this.draw(); this.x+=this.velocity.x; this.y+=this.velocity.y; }
+    draw(camX, camY){ ctx.beginPath(); ctx.arc(this.x-camX+window.innerWidth/2,this.y-camY+window.innerHeight/2,this.radius,0,Math.PI*2,false); ctx.fillStyle=this.color; ctx.fill(); ctx.closePath(); }
+    update(camX, camY){ this.draw(camX, camY); this.x+=this.velocity.x; this.y+=this.velocity.y; }
 }
 
 class Enemy {
@@ -101,10 +101,10 @@ class Enemy {
         else{ this.radius=15; this.speed=2*speedMultiplier; this.health=30; this.color='#f0f'; }
         this.lastShotTime = 0;
     }
-    draw(){ ctx.beginPath(); ctx.arc(this.x,this.y,this.radius,0,Math.PI*2,false); ctx.fillStyle=this.color; ctx.fill(); ctx.closePath(); }
-    update(player){ const angle=Math.atan2(player.y-this.y,player.x-this.x); this.velocity={ x: Math.cos(angle)*this.speed, y: Math.sin(angle)*this.speed }; this.x+=this.velocity.x; this.y+=this.velocity.y; this.draw(); }
-    updateBR(enemies, index) {
-        if (enemies.length <= 1) { this.draw(); return; }
+    draw(camX, camY){ ctx.beginPath(); ctx.arc(this.x-camX+window.innerWidth/2,this.y-camY+window.innerHeight/2,this.radius,0,Math.PI*2,false); ctx.fillStyle=this.color; ctx.fill(); ctx.closePath(); }
+    update(player){ const angle=Math.atan2(player.y-this.y,player.x-this.x); this.velocity={ x: Math.cos(angle)*this.speed, y: Math.sin(angle)*this.speed }; this.x+=this.velocity.x; this.y+=this.velocity.y; this.draw(player.cameraX, player.cameraY); }
+    updateBR(enemies, index, camX, camY) {
+        if (enemies.length <= 1) { this.draw(camX, camY); return; }
         let closestEnemy = null;
         let closestDist = Infinity;
         enemies.forEach((enemy, i) => {
@@ -129,14 +129,14 @@ class Enemy {
                 enemyProjectiles.push(new Projectile(this.x, this.y, 4, this.color, velocity, 15, this));
             }
         }
-        this.draw();
+        this.draw(camX, camY);
     }
     takeDamage(amount){ this.health-=amount; return this.health<=0; }
 }
 
 class Particle { constructor(x,y,radius,color,velocity){ this.x=x; this.y=y; this.radius=radius; this.color=color; this.velocity=velocity; this.life=30; }
-    update(){ this.x+=this.velocity.x; this.y+=this.velocity.y; this.life--; this.draw(); }
-    draw(){ ctx.beginPath(); ctx.arc(this.x,this.y,this.radius,0,Math.PI*2,false); ctx.fillStyle=this.color; ctx.fill(); ctx.closePath(); }
+    update(camX, camY){ this.x+=this.velocity.x; this.y+=this.velocity.y; this.life--; this.draw(camX, camY); }
+    draw(camX, camY){ ctx.beginPath(); ctx.arc(this.x-camX+window.innerWidth/2,this.y-camY+window.innerHeight/2,this.radius,0,Math.PI*2,false); ctx.fillStyle=this.color; ctx.fill(); ctx.closePath(); }
 }
 
 class PowerUp {
@@ -149,14 +149,14 @@ class PowerUp {
         this.floatOffset = 0;
         this.color = type==='health'?'#0f0':type==='shield'?'#00f':type==='rapid'?'#f90':'#f0f';
     }
-    draw() {
+    draw(camX, camY) {
         this.floatOffset += 0.05;
         const floatY = Math.sin(this.floatOffset) * 5;
         ctx.save();
         ctx.shadowBlur = 20;
         ctx.shadowColor = this.color;
         ctx.beginPath();
-        ctx.arc(this.x, this.baseY + floatY, this.radius, 0, Math.PI*2);
+        ctx.arc(this.x - camX + window.innerWidth/2, this.baseY - camY + window.innerHeight/2 + floatY, this.radius, 0, Math.PI*2);
         ctx.fillStyle = this.color;
         ctx.fill();
         ctx.closePath();
@@ -203,13 +203,18 @@ window.addEventListener('click',(event)=>{
 });
 
 function spawnEnemies(){
-    // For BR mode, spawn initial batch of enemies
+    // For BR mode, spawn initial batch of enemies spread across the map
     if(gameMode === 'br') {
+        const gridSize = 10;
+        const cellWidth = canvas.width / gridSize;
+        const cellHeight = canvas.height / gridSize;
         for(let i = 0; i < 100; i++) {
             const types = ['fast','tank','ranged','basic'];
             const type = types[Math.floor(Math.random() * types.length)];
-            let spawnX = Math.random() * canvas.width;
-            let spawnY = Math.random() * canvas.height;
+            const gridX = Math.floor(Math.random() * gridSize);
+            const gridY = Math.floor(Math.random() * gridSize);
+            let spawnX = gridX * cellWidth + Math.random() * cellWidth;
+            let spawnY = gridY * cellHeight + Math.random() * cellHeight;
             enemies.push(new Enemy(spawnX, spawnY, type));
         }
     }
@@ -227,7 +232,7 @@ function spawnEnemies(){
             const puTypes = ['health','shield','rapid','bomb'];
             powerUps.push(new PowerUp(spawnX, spawnY, puTypes[Math.floor(Math.random()*puTypes.length)]));
         }
-    }, gameMode === 'br' ? 500 : (difficulty==='easy'?1500 : difficulty==='medium'?1000 : 700));
+    }, gameMode === 'br' ? 2000 : (difficulty==='easy'?1500 : difficulty==='medium'?1000 : 700));
 
     // Additional random power-ups every 6 seconds (normal mode only)
     if(gameMode === 'normal') {
@@ -255,24 +260,31 @@ function init(){
 function animate(){
     if(!gameActive) return;
     animationId=requestAnimationFrame(animate);
-    ctx.fillStyle='rgba(0,0,0,0.1)'; ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle='rgba(0,0,0,0.1)'; ctx.fillRect(0,0,window.innerWidth,window.innerHeight);
+    
+    let camX = canvas.width/2;
+    let camY = canvas.height/2;
     
     if(gameMode === 'normal') {
         player.update(keys);
-        powerUps.forEach((pu,index)=>{ pu.draw(); const dist=Math.hypot(player.x-pu.x,player.y-pu.y); if(dist<player.radius+pu.radius){ pu.apply(player); powerUps.splice(index,1); } });
+        camX = player.cameraX;
+        camY = player.cameraY;
+        powerUps.forEach((pu,index)=>{ pu.draw(camX, camY); const dist=Math.hypot(player.x-pu.x,player.y-pu.y); if(dist<player.radius+pu.radius){ pu.apply(player); powerUps.splice(index,1); } });
     } else {
         player.draw();
+        camX = player.cameraX;
+        camY = player.cameraY;
     }
 
-    projectiles.forEach((projectile,index)=>{ projectile.update(); if(projectile.x+projectile.radius<0||projectile.x-projectile.radius>canvas.width||projectile.y+projectile.radius<0||projectile.y-projectile.radius>canvas.height){ setTimeout(()=>{projectiles.splice(index,1);},0); } });
+    projectiles.forEach((projectile,index)=>{ projectile.update(camX, camY); if(projectile.x+projectile.radius<0||projectile.x-projectile.radius>canvas.width||projectile.y+projectile.radius<0||projectile.y-projectile.radius>canvas.height){ setTimeout(()=>{projectiles.splice(index,1);},0); } });
     
-    enemyProjectiles.forEach((projectile,index)=>{ projectile.update(); if(projectile.x+projectile.radius<0||projectile.x-projectile.radius>canvas.width||projectile.y+projectile.radius<0||projectile.y-projectile.radius>canvas.height){ setTimeout(()=>{enemyProjectiles.splice(index,1);},0); } });
+    enemyProjectiles.forEach((projectile,index)=>{ projectile.update(camX, camY); if(projectile.x+projectile.radius<0||projectile.x-projectile.radius>canvas.width||projectile.y+projectile.radius<0||projectile.y-projectile.radius>canvas.height){ setTimeout(()=>{enemyProjectiles.splice(index,1);},0); } });
 
-    particles.forEach((p,i)=>{ p.update(); if(p.life<=0) particles.splice(i,1); });
+    particles.forEach((p,i)=>{ p.update(camX, camY); if(p.life<=0) particles.splice(i,1); });
 
     enemies.forEach((enemy,index)=>{
         if(gameMode === 'br') {
-            enemy.updateBR(enemies, index);
+            enemy.updateBR(enemies, index, camX, camY);
         } else {
             enemy.update(player);
             const dist=Math.hypot(player.x-enemy.x,player.y-enemy.y);
