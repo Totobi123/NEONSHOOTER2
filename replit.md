@@ -16,6 +16,9 @@ A single-page HTML5 canvas game - "Neon Defender" - a survival shooter with neon
 No build process required - just serve the HTML file directly.
 
 ## Game Features
+- **2 Game Modes:**
+  - Normal Mode: Classic survival shooter where you fight enemies
+  - Battle Royale Mode: Watch enemies fight each other to the last one standing
 - 3 difficulty levels (Easy, Medium, Hard)
 - 3 weapons (Pistol, Shotgun, Sniper)
 - Power-ups (Health, Shield, Rapid Fire, Bomb)
@@ -23,4 +26,5 @@ No build process required - just serve the HTML file directly.
 - Particle effects and neon visual style
 
 ## Recent Changes
+- 2025-11-22: Added Battle Royale mode where enemies target and shoot each other
 - 2025-11-22: Imported from GitHub and configured for Replit deployment
