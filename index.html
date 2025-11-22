@@ -106,15 +106,17 @@ class Player {
     }
     draw() { ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2, false); ctx.fillStyle = this.color; ctx.fill(); ctx.shadowBlur = 15; ctx.shadowColor = this.color; ctx.closePath(); ctx.shadowBlur = 0; }
     update(keys) {
-        const keyW = this.isP2 ? 'ArrowUp' : 'KeyW';
-        const keyS = this.isP2 ? 'ArrowDown' : 'KeyS';
-        const keyA = this.isP2 ? 'ArrowLeft' : 'KeyA';
-        const keyD = this.isP2 ? 'ArrowRight' : 'KeyD';
-        
-        if(keys[keyW]) this.y -= this.speed;
-        if(keys[keyS]) this.y += this.speed;
-        if(keys[keyA]) this.x -= this.speed;
-        if(keys[keyD]) this.x += this.speed;
+        if(this.isP2) {
+            if(keys['ArrowUp']) this.y -= this.speed;
+            if(keys['ArrowDown']) this.y += this.speed;
+            if(keys['ArrowLeft']) this.x -= this.speed;
+            if(keys['ArrowRight']) this.x += this.speed;
+        } else {
+            if(keys['KeyW']) this.y -= this.speed;
+            if(keys['KeyS']) this.y += this.speed;
+            if(keys['KeyA']) this.x -= this.speed;
+            if(keys['KeyD']) this.x += this.speed;
+        }
         
         if(this.x - this.radius < 0) this.x = this.radius;
         if(this.x + this.radius > canvas.width) this.x = canvas.width - this.radius;
