@@ -322,8 +322,10 @@ window.addEventListener('keydown', (e) => {
         const fireRate = weapon.fireRate;
         if(now - player1.lastShotTime < fireRate) return;
         player1.lastShotTime = now;
-        // Shoot towards mouse position (or center if mouse not tracked)
-        const angle = Math.atan2(window.lastMouseY - player1.y, window.lastMouseX - player1.x);
+        // Shoot towards opponent (Player 2 or Bot)
+        const targetX = isPlayingBot ? bot.x : player2.x;
+        const targetY = isPlayingBot ? bot.y : player2.y;
+        const angle = Math.atan2(targetY - player1.y, targetX - player1.x);
         for(let i = 0; i < weapon.bullets; i++) {
             let spreadAngle = angle;
             if(weapon.name === 'Shotgun') spreadAngle += (Math.random() - 0.5) * weapon.spread;
