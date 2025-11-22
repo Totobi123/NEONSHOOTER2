@@ -60,8 +60,12 @@ No build process required - just serve the HTML file directly.
 - 2025-11-22: Real-time game state sync (positions, health, projectiles)
 - 2025-11-22: Auto-fallback to Bot if opponent doesn't join in 30 seconds
 
-## Firebase Online Multiplayer Setup
-- Online mode uses Firebase Realtime Database for real-time game sync
-- Each match creates a room with a unique code
-- Player 1 shares code with Player 2, both connect and play live
-- See `FIREBASE_SETUP.md` for complete setup instructions
+## Online Multiplayer Backend (Node.js + WebSockets)
+- **Backend:** Express.js server with Socket.io for real-time multiplayer
+- **How it works:** Server handles matchmaking and syncs game state in real-time
+- **Architecture:** 
+  - `server.js` - Node.js server (Express + Socket.io)
+  - Serves the static game (index.html)
+  - Manages player connections and game rooms
+  - Syncs positions, health, and projectiles in real-time
+- **No external services needed** - All on Replit!
