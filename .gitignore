@@ -1,0 +1,12 @@
+# Replit
+.replit
+.config/
+.cache/
+.local/
+.upm/
+.breakpoints
+replit.nix
+
+# OS
+.DS_Store
+Thumbs.db
