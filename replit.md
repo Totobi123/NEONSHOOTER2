@@ -55,10 +55,21 @@ No build process required - just serve the HTML file directly.
 - 2025-11-22: Players select which keyboard to use, other auto-assigned to Player 2
 - 2025-11-22: Mouse registration for both players in calibration phase
 - 2025-11-22: Fallback to default controls if only 1 keyboard detected
-- 2025-11-22: **NEW: Firebase Online Multiplayer** - Real-time 1v1 play across the internet
-- 2025-11-22: Implemented random match (generates code) and code-based joining
+- 2025-11-22: **NEW: Node.js + Socket.io Online Multiplayer** - Real-time 1v1 play across the internet
+- 2025-11-22: Implemented random match (generates 5-char code) and code-based joining
 - 2025-11-22: Real-time game state sync (positions, health, projectiles)
-- 2025-11-22: Auto-fallback to Bot if opponent doesn't join in 30 seconds
+- 2025-11-22: Extended matchmaking timeout to 2 minutes
+- 2025-11-23: **CRITICAL FIXES: Complete Online Multiplayer Overhaul**
+- 2025-11-23: Fixed player ID assignment - Host=Player 1, Joiner=Player 2 (server-authoritative)
+- 2025-11-23: Fixed movement sync - each player controls own avatar, positions sync every frame
+- 2025-11-23: Fixed damage sync - each client authoritative for own health (no double-application)
+- 2025-11-23: Fixed projectile rendering - remote projectiles now visible using Projectile class
+- 2025-11-23: Fixed control restrictions - Host uses WASD+Click/Enter, Joiner uses Arrows+Shift
+- 2025-11-23: Fixed labels - Host sees "You (Host)", Joiner sees "You (Joiner)"
+- 2025-11-23: Fixed copy button visibility - only Host sees copy code button
+- 2025-11-23: Separated game modes clearly - Bot/Online/Local have distinct code paths
+- 2025-11-23: Server validates player IDs and routes updates correctly
+- 2025-11-23: Eliminated health desync - both players see consistent health and victory states
 
 ## Online Multiplayer Backend (Node.js + WebSockets)
 - **Backend:** Express.js server with Socket.io for real-time multiplayer
@@ -67,5 +78,19 @@ No build process required - just serve the HTML file directly.
   - `server.js` - Node.js server (Express + Socket.io)
   - Serves the static game (index.html)
   - Manages player connections and game rooms
+  - Server-authoritative player ID assignment (prevents spoofing)
   - Syncs positions, health, and projectiles in real-time
+- **Authoritative Architecture:**
+  - Each client controls and syncs ONLY their own avatar
+  - Each client detects hits ONLY on their own avatar
+  - Server validates player IDs and routes updates to correct opponent
+  - No double-application of damage - health stays synchronized
+  - Victory conditions consistent across both clients
+- **Controls:**
+  - **Host (Player 1):** WASD to move, Click or ENTER to auto-shoot at opponent
+  - **Joiner (Player 2):** Arrow Keys to move, SHIFT to auto-shoot at opponent
+- **Matchmaking:**
+  - Host clicks "RANDOM MATCH" → gets 5-character code to share
+  - Joiner clicks "ENTER CODE" → enters host's code to connect
+  - 2-minute timeout if opponent doesn't join
 - **No external services needed** - All on Replit!
