@@ -70,6 +70,8 @@ No build process required - just serve the HTML file directly.
 - 2025-11-23: Separated game modes clearly - Bot/Online/Local have distinct code paths
 - 2025-11-23: Server validates player IDs and routes updates correctly
 - 2025-11-23: Eliminated health desync - both players see consistent health and victory states
+- 2025-11-23: **FIXED: Movement for offline modes** - Bot and Local 2-Player now use default controls (WASD + Arrows)
+- 2025-11-23: **NEW: Replay Button** - Click REPLAY on game-over screen to instantly restart same game mode
 
 ## Online Multiplayer Backend (Node.js + WebSockets)
 - **Backend:** Express.js server with Socket.io for real-time multiplayer

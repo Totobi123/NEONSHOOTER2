@@ -109,7 +109,8 @@
     <div id="game-over-modal" class="menu-box" style="display: none;">
         <h1 id="winner-text">Player 1 Wins!</h1>
         <p style="font-size: 1rem; margin: 20px 0;">Victory!</p>
-        <button id="homeBtn" class="mode-btn">HOME</button>
+        <button id="replayBtn" class="mode-btn" style="background: linear-gradient(45deg, #00d4ff, #0099ff);">REPLAY</button>
+        <button id="homeBtn" class="mode-btn" style="background: linear-gradient(45deg, #666, #444); margin-top: 10px;">HOME</button>
     </div>
     
     <div id="pause-modal" class="menu-box">
@@ -943,6 +944,31 @@ function goHome() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
+function replayGame() {
+    // Reset game state for replay
+    gameActive = false;
+    gamePaused = false;
+    projectiles = [];
+    player1.health = 100;
+    player2.health = 100;
+    if(bot) bot.health = 100;
+    
+    // Hide game over modal and reset
+    document.getElementById('game-over-modal').style.display = 'none';
+    
+    // Restart game based on current mode
+    if(isPlayingBot) {
+        // Replay bot mode with same difficulty
+        startGame();
+    } else if(currentRoomId) {
+        // Replay online mode - restart the game
+        startGame();
+    } else {
+        // Replay local 2-player mode
+        startGame();
+    }
+}
+
 // Event Listeners
 document.getElementById('localModeBtn').addEventListener('click', () => {
     gameMode = 'local';
@@ -1058,6 +1084,7 @@ document.getElementById('skipCalibrationBtn').addEventListener('click', () => {
     startGame();
 });
 
+document.getElementById('replayBtn').addEventListener('click', replayGame);
 document.getElementById('homeBtn').addEventListener('click', goHome);
 document.getElementById('homeFromPauseBtn').addEventListener('click', goHome);
 document.getElementById('resumeBtn').addEventListener('click', togglePause);
