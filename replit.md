@@ -22,7 +22,6 @@ No build process required - just serve the HTML file directly.
   - Online 1v1: Connect via code or random match
 - **Gameplay:**
   - 3 weapons (Pistol, Shotgun, Sniper)
-  - **Power-ups:** Shields (blocks 1 hit), Speed Boost (60% faster for 5 sec)
   - Health bars for both players
   - Bot AI with adaptive difficulty
 - **Controls (2-Player Mode):**
@@ -85,8 +84,7 @@ No build process required - just serve the HTML file directly.
 - 2025-11-23: **Feature 3: Weapon Selection** - Pre-game weapon selection screen with Pistol/Shotgun/Sniper stats
 - 2025-11-23: **Feature 4: Game Statistics** - Track kills, damage dealt per player, display on HUD during gameplay
 - 2025-11-23: **Feature 5: Visual Polish** - Screen shake (8px intensity on hits), particle explosion effects, bullet trail rendering
-- 2025-11-23: **NEW FEATURE 6: Power-ups System** - Temporary shields (5 sec) + speed boost (5 sec), spawn randomly during matches
-- 2025-11-23: **NEW FEATURE 7: Character Skins** - 4 free cosmetic skins (Default, Diamond, Star, Square) - all unlocked and selectable anytime
+- 2025-11-23: **NEW FEATURE 6: Character Skins** - 4 free cosmetic skins (Default, Diamond, Star, Square) - all unlocked and selectable anytime
 
 ## Online Multiplayer Backend (Node.js + WebSockets)
 - **Backend:** Express.js server with Socket.io for real-time multiplayer

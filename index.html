@@ -236,23 +236,6 @@ const skins = {
     'square': { name: 'Square', shape: 'square' }
 };
 
-// POWER-UPS
-let powerups = [];
-class PowerUp {
-    constructor(x, y, type) {
-        this.x = x; this.y = y; this.radius = 8; this.type = type; this.duration = 0;
-        this.color = type === 'shield' ? '#ffff00' : type === 'speed' ? '#00ff00' : '#ff00ff';
-        this.spawnTime = Date.now();
-        this.lifetime = 8000;
-    }
-    draw() {
-        ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2);
-        ctx.fillStyle = this.color; ctx.globalAlpha = 0.8;
-        ctx.fill(); ctx.globalAlpha = 1;
-        ctx.strokeStyle = this.color; ctx.lineWidth = 2; ctx.stroke();
-    }
-    isAlive() { return Date.now() - this.spawnTime < this.lifetime; }
-}
 
 // GAME STATS
 let p1Kills = 0, p1Damage = 0;
@@ -362,14 +345,11 @@ class Player {
         this.isP2 = isP2;
         this.currentWeaponIndex = 0;
         this.lastShotTime = 0;
-        this.shieldActive = false; this.shieldTime = 0;
-        this.speedBoostActive = false; this.speedBoostTime = 0;
     }
     draw() { 
         ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2, false); 
         ctx.fillStyle = this.color; ctx.fill(); 
         ctx.shadowBlur = 15; ctx.shadowColor = this.color; ctx.closePath(); ctx.shadowBlur = 0;
-        if(this.shieldActive) { ctx.strokeStyle = '#ffff00'; ctx.lineWidth = 3; ctx.stroke(); }
     }
     update(keys) {
         // Online mode: ALWAYS use default controls
@@ -845,27 +825,6 @@ function animate() {
             player2.update(keys);
         }
         
-        // Update power-ups
-        powerups = powerups.filter(p => p.isAlive());
-        powerups.forEach(p => p.draw());
-        
-        // Randomly spawn new power-up
-        if(Math.random() < 0.002) spawnRandomPowerUp();
-        
-        // Check power-up collisions
-        powerups.forEach((pu, i) => {
-            const distP1 = Math.hypot(pu.x - player1.x, pu.y - player1.y);
-            const distP2 = Math.hypot(pu.x - player2.x, pu.y - player2.y);
-            if(distP1 < pu.radius + player1.radius) { applyPowerUp(player1, pu.type); powerups.splice(i, 1); }
-            else if(distP2 < pu.radius + player2.radius) { applyPowerUp(player2, pu.type); powerups.splice(i, 1); }
-        });
-        
-        // Update power-up timers
-        if(player1.shieldActive && Date.now() - player1.shieldTime > 5000) player1.shieldActive = false;
-        if(player1.speedBoostActive && Date.now() - player1.speedBoostTime > 5000) { player1.speedBoostActive = false; player1.speed = 5; }
-        if(player2.shieldActive && Date.now() - player2.shieldTime > 5000) player2.shieldActive = false;
-        if(player2.speedBoostActive && Date.now() - player2.speedBoostTime > 5000) { player2.speedBoostActive = false; player2.speed = 5; }
-        
         // Handle projectiles based on mode
         if(isPlayingBot) {
             const opponent = bot;
@@ -879,8 +838,7 @@ function animate() {
                 if(p.owner === player1) {
                     const dist = Math.hypot(p.x - opponent.x, p.y - opponent.y);
                     if(dist < p.radius + opponent.radius) {
-                        if(opponent.shieldActive) { opponent.shieldActive = false; }
-                        else { opponent.health -= p.damage; }
+                        opponent.health -= p.damage;
                         p1Damage += p.damage;
                         soundGen.hit();
                         createExplosion(opponent.x, opponent.y, opponent.color);
@@ -897,8 +855,7 @@ function animate() {
                 } else {
                     const dist = Math.hypot(p.x - player1.x, p.y - player1.y);
                     if(dist < p.radius + player1.radius) {
-                        if(player1.shieldActive) { player1.shieldActive = false; }
-                        else { player1.health -= p.damage; }
+                        player1.health -= p.damage;
                         p2Damage += p.damage;
                         soundGen.hit();
                         createExplosion(player1.x, player1.y, player1.color);
@@ -932,8 +889,7 @@ function animate() {
                 if(p.owner === opponentAvatar) {
                     const dist = Math.hypot(p.x - myAvatar.x, p.y - myAvatar.y);
                     if(dist < p.radius + myAvatar.radius) {
-                        if(myAvatar.shieldActive) { myAvatar.shieldActive = false; }
-                        else { myAvatar.health -= p.damage; }
+                        myAvatar.health -= p.damage;
                         if(onlinePlayerId === 1) p1Damage += p.damage; else p2Damage += p.damage;
                         soundGen.hit();
                         createExplosion(myAvatar.x, myAvatar.y, myAvatar.color);
@@ -962,8 +918,7 @@ function animate() {
                 const checkPlayer = p.owner === player1 ? player2 : player1;
                 const dist = Math.hypot(p.x - checkPlayer.x, p.y - checkPlayer.y);
                 if(dist < p.radius + checkPlayer.radius) {
-                    if(checkPlayer.shieldActive) { checkPlayer.shieldActive = false; }
-                    else { checkPlayer.health -= p.damage; }
+                    checkPlayer.health -= p.damage;
                     if(p.owner === player1) p1Damage += p.damage; else p2Damage += p.damage;
                     soundGen.hit();
                     createExplosion(checkPlayer.x, checkPlayer.y, checkPlayer.color);
@@ -1018,26 +973,6 @@ function updateStats() {
     document.getElementById('p2-damage').innerText = p2Damage;
 }
 
-function spawnRandomPowerUp() {
-    const type = Math.random() > 0.5 ? 'shield' : 'speed';
-    const x = Math.random() * (canvas.width - 100) + 50;
-    const y = Math.random() * (canvas.height - 100) + 50;
-    powerups.push(new PowerUp(x, y, type));
-}
-
-function applyPowerUp(player, type) {
-    if(type === 'shield') {
-        player.shieldActive = true;
-        player.shieldTime = Date.now();
-        soundGen.playSound(300, 0.3);
-    } else if(type === 'speed') {
-        player.speedBoostActive = true;
-        player.speedBoostTime = Date.now();
-        player.speed = 8;
-        soundGen.playSound(600, 0.3);
-    }
-}
-
 function initSkins() {
     const grid = document.getElementById('skinsGrid');
     grid.innerHTML = '';
@@ -1070,16 +1005,12 @@ function startGame() {
     player1.lastShotTime = 0;
     projectiles = [];
     particles = [];
-    powerups = [];
     p1Kills = 0; p1Damage = 0;
     p2Kills = 0; p2Damage = 0;
-    player1.shieldActive = false; player1.speedBoostActive = false;
-    player2.shieldActive = false; player2.speedBoostActive = false;
     updateStats();
     gameActive = true;
     gamePaused = false;
     document.getElementById('stats-container').style.display = 'block';
-    spawnRandomPowerUp();
     
     // For offline modes: ALWAYS use default controls
     if(!currentRoomId) {
