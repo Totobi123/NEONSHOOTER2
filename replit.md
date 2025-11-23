@@ -26,6 +26,15 @@ No build process required - just serve the HTML file directly.
 - **Fluid Scaling**: Uses CSS `clamp()` and viewport units (vmin, vw, vh) for automatic scaling
 - **CSS Media Queries**: 5 breakpoints for perfect rendering on any screen size
 
+## Mobile Game Controls
+✅ **TOUCH CONTROLS FOR PHONES** - Optional on-screen controls:
+- **Movement Joystick** (Bottom Left): Virtual joystick for directional movement
+- **Shoot Button** (Bottom Right): Large 🔫 button to fire weapons
+- **Toggle in Settings**: "Enable Touch Controls" checkbox to show/hide during gameplay
+- **Auto-disabled on desktop**: Only appears on mobile devices
+- **Works in all modes**: Bot, Local 2-Player, and Online multiplayer
+- **Smooth responsiveness**: Real-time movement tracking and haptic feedback
+
 ## Game Features
 - **1v1 PvP Combat:**
   - Local 1v1: Two players on same device
