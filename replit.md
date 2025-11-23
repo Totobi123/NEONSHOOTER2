@@ -19,16 +19,16 @@ No build process required - just serve the HTML file directly.
 - **1v1 PvP Combat:**
   - Local 1v1: Two players on same device
   - Bot Mode: Play against AI with 3 difficulty levels (Easy/Medium/Hard)
-  - Online 1v1: Connect via code or random match (placeholder UI)
+  - Online 1v1: Connect via code or random match
 - **Gameplay:**
   - 3 weapons (Pistol, Shotgun, Sniper)
-  - No powerups (removed for balanced PvP)
+  - **Power-ups:** Shields (blocks 1 hit), Speed Boost (60% faster for 5 sec)
   - Health bars for both players
   - Bot AI with adaptive difficulty
 - **Controls (2-Player Mode):**
   - Multi-Keyboard Detection: System detects and names connected keyboards (Keyboard A, B, C, etc.)
   - Smart Assignment: Players select which keyboard to use, other auto-assigned to Player 2
-  - Default Controls: Player 1 (WASD + Click), Player 2 (Arrow Keys + CTRL)
+  - Default Controls: Player 1 (WASD + Click), Player 2 (Arrow Keys + SHIFT)
   - Fallback Option: If only 1 keyboard, use default controls
 - **Bot Mode:**
   - Easy: Slower movement speed (2.5x), longer fire rate (800ms)
@@ -36,6 +36,13 @@ No build process required - just serve the HTML file directly.
   - Hard: Fast movement speed (5.5x), rapid fire rate (300ms)
   - Bot automatically moves toward and shoots at player
 - **Features:**
+  - Sound Effects: Shoot, hit, game over sounds via Web Audio API
+  - Settings Menu: Volume control, color themes (Cyan/Red/Blue/Green), visual effects toggles
+  - Weapon Selection: Pre-game weapon choice with stats display
+  - Game Statistics: Real-time kill/damage tracking on HUD
+  - Visual Polish: Intense screen shake on hits, particle explosions, bullet trails
+  - **Cosmetic Skins:** 4 character appearance options (unlock via Daily Challenges)
+  - **Daily Challenges:** 3 daily quests with progress bars and cosmetic rewards
   - Pause button (ESC key)
   - Home button on game over
   - Smooth neon visual style with particle effects
@@ -78,6 +85,9 @@ No build process required - just serve the HTML file directly.
 - 2025-11-23: **Feature 3: Weapon Selection** - Pre-game weapon selection screen with Pistol/Shotgun/Sniper stats
 - 2025-11-23: **Feature 4: Game Statistics** - Track kills, damage dealt per player, display on HUD during gameplay
 - 2025-11-23: **Feature 5: Visual Polish** - Screen shake (8px intensity on hits), particle explosion effects, bullet trail rendering
+- 2025-11-23: **NEW FEATURE 6: Power-ups System** - Temporary shields (5 sec) + speed boost (5 sec), spawn randomly during matches
+- 2025-11-23: **NEW FEATURE 7: Daily Challenges** - 3 daily quests (Headshot Master, Damage Dealer, Survivor) with progress tracking
+- 2025-11-23: **NEW FEATURE 8: Character Skins** - 4 cosmetic skins (Default, Diamond, Star, Square) unlock via challenges
 
 ## Online Multiplayer Backend (Node.js + WebSockets)
 - **Backend:** Express.js server with Socket.io for real-time multiplayer
