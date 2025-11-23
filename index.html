@@ -283,8 +283,8 @@ function initializeSocket() {
     socket.on('room-created', (data) => {
         currentRoomId = data.code;
         currentMatchCode = data.code;
-        onlinePlayerId = 1;
-        console.log('Room created with code:', data.code);
+        onlinePlayerId = 1;  // Host is always Player 1
+        console.log('Room created with code:', data.code, 'Player ID:', onlinePlayerId);
         document.getElementById('online-modal').style.display = 'none';
         document.getElementById('matching-modal').style.display = 'flex';
         document.getElementById('matching-text').innerText = 'Your Code: ' + data.code + '\n\nWaiting for opponent...\n(Share this code)';
@@ -370,11 +370,12 @@ function joinOnlineRoom(code) {
         return;
     }
     
-    onlinePlayerId = 2;
-    console.log('Joining room with code:', code);
+    onlinePlayerId = 2;  // Joiner is always Player 2
+    console.log('Joining room with code:', code, 'Player ID:', onlinePlayerId);
     document.getElementById('online-modal').style.display = 'none';
     document.getElementById('matching-modal').style.display = 'flex';
     document.getElementById('matching-text').innerText = 'Connecting to: ' + code + '\n\nWaiting...';
+    document.getElementById('copyCodeBtn').style.display = 'none';  // Joiner doesn't see copy button
     
     socket.emit('join-room', code);
 }
@@ -682,20 +683,31 @@ function startGame() {
     
     if(isPlayingBot) {
         bot = new Bot(canvas.width * 3/4, canvas.height/2, 15, '#f0f', botDifficulty);
+        document.getElementById('p1-label').innerText = 'You';
         document.getElementById('p2-label').innerText = 'Bot (' + botDifficulty.toUpperCase() + ')';
     } else if(currentRoomId) {
-        // Online mode
+        // Online mode - labels depend on which player we are
         player2.health = 100;
         player2.x = canvas.width * 3/4;
         player2.y = canvas.height/2;
         player2.lastShotTime = 0;
-        document.getElementById('p2-label').innerText = 'Online Player';
+        
+        if(onlinePlayerId === 1) {
+            // We are Host (Player 1)
+            document.getElementById('p1-label').innerText = 'You (Host)';
+            document.getElementById('p2-label').innerText = 'Player 2';
+        } else {
+            // We are Joiner (Player 2)
+            document.getElementById('p1-label').innerText = 'Player 1';
+            document.getElementById('p2-label').innerText = 'You (Joiner)';
+        }
     } else {
         // Local 2-player
         player2.health = 100;
         player2.lastShotTime = 0;
         player2.x = canvas.width * 3/4;
         player2.y = canvas.height/2;
+        document.getElementById('p1-label').innerText = 'Player 1';
         document.getElementById('p2-label').innerText = 'Player 2';
     }
     
