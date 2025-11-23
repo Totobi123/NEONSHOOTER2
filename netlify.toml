@@ -1,0 +1,33 @@
+# Netlify Configuration for Neon Defender 1v1
+
+[build]
+  publish = "."
+  command = "echo 'Static site - no build needed'"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[dev]
+  port = 5000
+  command = "node server.js"
+
+[context.production]
+  command = "echo 'Frontend deployment complete'"
+
+# Environment variables for production
+[env]
+  [env.production]
+    BACKEND_URL = ""  # Set this when deploying
+
+# Headers for caching
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+    Pragma = "no-cache"
+    Expires = "0"
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "SAMEORIGIN"
+    X-XSS-Protection = "1; mode=block"

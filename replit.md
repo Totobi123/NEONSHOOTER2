@@ -66,45 +66,36 @@ No build process required - just serve the HTML file directly.
   - Home button on game over
   - Smooth neon visual style with particle effects
 
+## Deployment Setup (Netlify-Ready)
+✅ **NETLIFY DEPLOYMENT CONFIGURED:**
+- `netlify.toml` - Complete Netlify configuration
+- `README.md` - Full documentation with features & controls
+- `DEPLOYMENT.md` - Step-by-step deployment guide
+- `package.json` - Updated with metadata and start scripts
+- `.gitignore` - Optimized for production
+
+**To Deploy:**
+1. Push to GitHub
+2. Connect repo to Netlify
+3. Leave build command empty (static site)
+4. (Optional) Deploy Node.js backend to Render/Railway/Heroku
+5. Set `BACKEND_URL` env variable in Netlify if using remote backend
+
 ## Recent Changes
-- 2025-11-22: Completely redesigned game as 1v1 PvP
-- 2025-11-22: Removed Battle Royale and Normal modes
-- 2025-11-22: Removed all powerups for balanced gameplay
-- 2025-11-22: Added pause functionality with ESC key
-- 2025-11-22: Added home buttons to return to menu
-- 2025-11-22: Added Local 1v1 mode (fully functional)
-- 2025-11-22: Added Bot Mode with 3 difficulty levels
-- 2025-11-22: Bot AI automatically moves toward and shoots at player
-- 2025-11-22: Added choice screen between vs Bot and vs Player (local)
-- 2025-11-22: Added multi-keyboard detection system for 2-player mode
-- 2025-11-22: System detects multiple physical keyboards and assigns names (Keyboard A, B, etc.)
-- 2025-11-22: Players select which keyboard to use, other auto-assigned to Player 2
-- 2025-11-22: Mouse registration for both players in calibration phase
-- 2025-11-22: Fallback to default controls if only 1 keyboard detected
-- 2025-11-22: **NEW: Node.js + Socket.io Online Multiplayer** - Real-time 1v1 play across the internet
-- 2025-11-22: Implemented random match (generates 5-char code) and code-based joining
-- 2025-11-22: Real-time game state sync (positions, health, projectiles)
-- 2025-11-22: Extended matchmaking timeout to 2 minutes
-- 2025-11-23: **CRITICAL FIXES: Complete Online Multiplayer Overhaul**
-- 2025-11-23: Fixed player ID assignment - Host=Player 1, Joiner=Player 2 (server-authoritative)
-- 2025-11-23: Fixed movement sync - each player controls own avatar, positions sync every frame
-- 2025-11-23: Fixed damage sync - each client authoritative for own health (no double-application)
-- 2025-11-23: Fixed projectile rendering - remote projectiles now visible using Projectile class
-- 2025-11-23: Fixed control restrictions - Host uses WASD+Click/Enter, Joiner uses Arrows+Shift
-- 2025-11-23: Fixed labels - Host sees "You (Host)", Joiner sees "You (Joiner)"
-- 2025-11-23: Fixed copy button visibility - only Host sees copy code button
-- 2025-11-23: Separated game modes clearly - Bot/Online/Local have distinct code paths
-- 2025-11-23: Server validates player IDs and routes updates correctly
-- 2025-11-23: Eliminated health desync - both players see consistent health and victory states
-- 2025-11-23: **FIXED: Movement for offline modes** - Bot and Local 2-Player now use default controls (WASD + Arrows)
-- 2025-11-23: **NEW: Replay Button** - Click REPLAY on game-over screen to instantly restart same game mode
-- 2025-11-23: **COMPLETE FEATURE UPDATE - ALL 5 FEATURES ADDED:**
-- 2025-11-23: **Feature 1: Sound Effects System** - Web Audio API generates shoot/hit/game-over sounds
-- 2025-11-23: **Feature 2: Settings Menu** - Volume control (0-100%), screen shake toggle, particle effects toggle, bullet trails toggle
-- 2025-11-23: **Feature 3: Weapon Selection** - Pre-game weapon selection screen with Pistol/Shotgun/Sniper stats
-- 2025-11-23: **Feature 4: Game Statistics** - Track kills, damage dealt per player, display on HUD during gameplay
-- 2025-11-23: **Feature 5: Visual Polish** - Screen shake (8px intensity on hits), particle explosion effects, bullet trail rendering
-- 2025-11-23: **NEW FEATURE 6: Character Skins** - 4 free cosmetic skins (Default, Diamond, Star, Square) - all unlocked and selectable anytime
+- 2025-11-23: **REMOVED: Power-ups, Screen Shake on Hit, Challenges System** - Streamlined for clean gameplay
+- 2025-11-23: **REMOVED: All locked content** - All character skins now free and available
+- 2025-11-23: **MOVED: Skins & Settings to main menu** - Direct access from home screen
+- 2025-11-23: **MADE FULLY RESPONSIVE** - Extreme responsiveness with 5 breakpoints (mobile to 4K)
+- 2025-11-23: **ADDED: Mobile Touch Controls** - Optional on-screen joystick + shoot button
+- 2025-11-23: **ADDED: Complete Netlify Deployment Setup**
+  - `netlify.toml` - Netlify configuration file
+  - `README.md` - Full documentation
+  - `DEPLOYMENT.md` - Step-by-step deployment guide
+  - `package.json` - Updated with metadata
+  - `.env.example` - Environment variable template
+  - `.gitignore` - Production-ready ignore rules
+  - `server.js` - Updated to use PORT env variable
+- Previous features: Sound effects, Settings menu, Weapon selection, Game statistics, Visual polish, Character skins, Online multiplayer, Bot AI, Local 2-player, Multi-keyboard detection
 
 ## Online Multiplayer Backend (Node.js + WebSockets)
 - **Backend:** Express.js server with Socket.io for real-time multiplayer
