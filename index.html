@@ -334,8 +334,10 @@ function initializeSocket() {
 // Create online room
 function createOnlineRoom() {
     if(!socket) initializeSocket();
+    
     if(!socket.connected) {
-        alert('Connecting to server... try again in a moment');
+        // Queue the room creation for when socket connects
+        setTimeout(() => createOnlineRoom(), 200);
         return;
     }
     socket.emit('create-room');
@@ -344,8 +346,10 @@ function createOnlineRoom() {
 // Join online room
 function joinOnlineRoom(code) {
     if(!socket) initializeSocket();
+    
     if(!socket.connected) {
-        alert('Connecting to server... try again in a moment');
+        // Queue the room join for when socket connects
+        setTimeout(() => joinOnlineRoom(code), 200);
         return;
     }
     
