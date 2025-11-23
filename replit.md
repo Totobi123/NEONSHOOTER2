@@ -72,6 +72,12 @@ No build process required - just serve the HTML file directly.
 - 2025-11-23: Eliminated health desync - both players see consistent health and victory states
 - 2025-11-23: **FIXED: Movement for offline modes** - Bot and Local 2-Player now use default controls (WASD + Arrows)
 - 2025-11-23: **NEW: Replay Button** - Click REPLAY on game-over screen to instantly restart same game mode
+- 2025-11-23: **COMPLETE FEATURE UPDATE - ALL 5 FEATURES ADDED:**
+- 2025-11-23: **Feature 1: Sound Effects System** - Web Audio API generates shoot/hit/game-over sounds
+- 2025-11-23: **Feature 2: Settings Menu** - Volume control (0-100%), screen shake toggle, particle effects toggle, bullet trails toggle
+- 2025-11-23: **Feature 3: Weapon Selection** - Pre-game weapon selection screen with Pistol/Shotgun/Sniper stats
+- 2025-11-23: **Feature 4: Game Statistics** - Track kills, damage dealt per player, display on HUD during gameplay
+- 2025-11-23: **Feature 5: Visual Polish** - Screen shake (8px intensity on hits), particle explosion effects, bullet trail rendering
 
 ## Online Multiplayer Backend (Node.js + WebSockets)
 - **Backend:** Express.js server with Socket.io for real-time multiplayer
