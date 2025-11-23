@@ -295,7 +295,7 @@ function createExplosion(x, y, color, count = 10) {
 
 function applyScreenShake(intensity = 5) {
     if(!screenShakeEnabled) return;
-    screenShakeAmount = intensity;
+    screenShakeAmount = intensity * 3;
 }
 
 // Control registration
@@ -766,8 +766,18 @@ window.addEventListener('click', (event) => {
 function animate() {
     if(!gameActive) return;
     animationId = requestAnimationFrame(animate);
+    
+    let offX = 0, offY = 0;
+    if(screenShakeAmount > 0) {
+        offX = (Math.random() - 0.5) * screenShakeAmount;
+        offY = (Math.random() - 0.5) * screenShakeAmount;
+        screenShakeAmount *= 0.85;
+    }
+    ctx.save();
+    ctx.translate(offX, offY);
+    
     ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillRect(-offX, -offY, canvas.width, canvas.height);
     
     if(!gamePaused) {
         // Update player movement based on mode
@@ -809,7 +819,7 @@ function animate() {
                         p1Damage += p.damage;
                         soundGen.hit();
                         createExplosion(opponent.x, opponent.y, opponent.color);
-                        applyScreenShake(8);
+                        applyScreenShake(20);
                         projectiles.splice(i, 1);
                         updateHealthBars();
                         updateStats();
@@ -826,7 +836,7 @@ function animate() {
                         p2Damage += p.damage;
                         soundGen.hit();
                         createExplosion(player1.x, player1.y, player1.color);
-                        applyScreenShake(8);
+                        applyScreenShake(20);
                         projectiles.splice(i, 1);
                         updateHealthBars();
                         updateStats();
@@ -860,7 +870,7 @@ function animate() {
                         if(onlinePlayerId === 1) p1Damage += p.damage; else p2Damage += p.damage;
                         soundGen.hit();
                         createExplosion(myAvatar.x, myAvatar.y, myAvatar.color);
-                        applyScreenShake(8);
+                        applyScreenShake(20);
                         projectiles.splice(i, 1);
                         updateHealthBars();
                         updateStats();
@@ -889,7 +899,7 @@ function animate() {
                     if(p.owner === player1) p1Damage += p.damage; else p2Damage += p.damage;
                     soundGen.hit();
                     createExplosion(checkPlayer.x, checkPlayer.y, checkPlayer.color);
-                    applyScreenShake(8);
+                    applyScreenShake(20);
                     projectiles.splice(i, 1);
                     updateHealthBars();
                     updateStats();
@@ -920,6 +930,7 @@ function animate() {
     
     ctx.restore();
 }
+
 
 function updateHealthBars() {
     document.getElementById('p1-health-fill').style.width = Math.max(0, player1.health) + '%';
