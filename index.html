@@ -295,7 +295,7 @@ function createExplosion(x, y, color, count = 10) {
 
 function applyScreenShake(intensity = 5) {
     if(!screenShakeEnabled) return;
-    screenShakeAmount = intensity * 3;
+    screenShakeAmount = Math.max(screenShakeAmount, intensity * 4);
 }
 
 // Control registration
@@ -767,17 +767,18 @@ function animate() {
     if(!gameActive) return;
     animationId = requestAnimationFrame(animate);
     
-    let offX = 0, offY = 0;
+    // SCREEN SHAKE
+    let shakeX = 0, shakeY = 0;
     if(screenShakeAmount > 0) {
-        offX = (Math.random() - 0.5) * screenShakeAmount;
-        offY = (Math.random() - 0.5) * screenShakeAmount;
-        screenShakeAmount *= 0.85;
+        shakeX = (Math.random() - 0.5) * screenShakeAmount;
+        shakeY = (Math.random() - 0.5) * screenShakeAmount;
+        screenShakeAmount *= 0.80;
     }
-    ctx.save();
-    ctx.translate(offX, offY);
     
+    ctx.save();
+    ctx.translate(shakeX, shakeY);
     ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
-    ctx.fillRect(-offX, -offY, canvas.width, canvas.height);
+    ctx.fillRect(-shakeX, -shakeY, canvas.width, canvas.height);
     
     if(!gamePaused) {
         // Update player movement based on mode
