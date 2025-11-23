@@ -121,7 +121,10 @@
     <div id="matching-modal" class="menu-box" style="display: none;">
         <h1>Finding Match...</h1>
         <p id="matching-text">Connecting to a random player...</p>
-        <button id="cancelMatchBtn" class="mode-btn" style="background: linear-gradient(45deg, #f44, #c00); margin-top: 20px;">CANCEL</button>
+        <div style="display: flex; gap: 10px; justify-content: center; margin-top: 15px;">
+            <button id="copyCodeBtn" class="mode-btn" style="background: linear-gradient(45deg, #00d4ff, #0099ff); display: none;">COPY CODE</button>
+            <button id="cancelMatchBtn" class="mode-btn" style="background: linear-gradient(45deg, #f44, #c00);">CANCEL</button>
+        </div>
     </div>
 </div>
 <script>
@@ -265,6 +268,7 @@ let socket = null;
 let currentRoomId = null;
 let opponentData = null;
 let onlinePlayerId = null;
+let currentMatchCode = null;
 
 // Initialize WebSocket connection
 function initializeSocket() {
@@ -278,10 +282,12 @@ function initializeSocket() {
     
     socket.on('room-created', (data) => {
         currentRoomId = data.code;
+        currentMatchCode = data.code;
         onlinePlayerId = 1;
         document.getElementById('online-modal').style.display = 'none';
         document.getElementById('matching-modal').style.display = 'flex';
         document.getElementById('matching-text').innerText = 'Your Code: ' + data.code + '\n\nWaiting for opponent...\n(Share this code)';
+        document.getElementById('copyCodeBtn').style.display = 'inline-block';
     });
     
     socket.on('game-start', (data) => {
@@ -858,12 +864,25 @@ document.getElementById('backFromOnlineBtn').addEventListener('click', () => {
     document.getElementById('code-section').style.display = 'none';
 });
 
+document.getElementById('copyCodeBtn').addEventListener('click', () => {
+    if(currentMatchCode) {
+        navigator.clipboard.writeText(currentMatchCode).then(() => {
+            const btn = document.getElementById('copyCodeBtn');
+            const origText = btn.innerText;
+            btn.innerText = 'COPIED!';
+            setTimeout(() => { btn.innerText = origText; }, 2000);
+        });
+    }
+});
+
 document.getElementById('cancelMatchBtn').addEventListener('click', () => {
     if(currentRoomId && socket) socket.emit('game-end', {});
     currentRoomId = null;
+    currentMatchCode = null;
     document.getElementById('matching-modal').style.display = 'none';
     document.getElementById('online-modal').style.display = 'flex';
     document.getElementById('code-section').style.display = 'none';
+    document.getElementById('copyCodeBtn').style.display = 'none';
 });
 
 document.getElementById('skipDetectionBtn').addEventListener('click', () => {
