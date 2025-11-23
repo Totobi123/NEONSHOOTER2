@@ -175,7 +175,8 @@ class Player {
     }
     draw() { ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2, false); ctx.fillStyle = this.color; ctx.fill(); ctx.shadowBlur = 15; ctx.shadowColor = this.color; ctx.closePath(); ctx.shadowBlur = 0; }
     update(keys) {
-        if(useDefaultControls) {
+        // Online mode: ALWAYS use default controls
+        if(currentRoomId || useDefaultControls) {
             if(this.isP2) {
                 if(keys['ArrowUp']) this.y -= this.speed;
                 if(keys['ArrowDown']) this.y += this.speed;
@@ -188,13 +189,8 @@ class Player {
                 if(keys['KeyD']) this.x += this.speed;
             }
         } else {
+            // Local mode with calibrated controls
             const registeredKeys = this.isP2 ? p2RegisteredKeys : p1RegisteredKeys;
-            for(let key of registeredKeys) {
-                if(key.includes('Up') || key.includes('W')) this.y -= this.speed;
-                if(key.includes('Down') || key.includes('S')) this.y += this.speed;
-                if(key.includes('Left') || key.includes('A')) this.x -= this.speed;
-                if(key.includes('Right') || key.includes('D')) this.x += this.speed;
-            }
             for(let k in keys) {
                 if(registeredKeys.has(k) && keys[k]) {
                     if(k.includes('Up') || k.includes('W')) this.y -= this.speed;
