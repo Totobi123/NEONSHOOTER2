@@ -15,6 +15,17 @@ A single-page HTML5 canvas game - "Neon Defender 1v1" - a competitive 1v1 PvP sh
 ## Setup
 No build process required - just serve the HTML file directly.
 
+## Responsive Design
+✅ **FULLY RESPONSIVE** - Works perfectly on all devices:
+- **Desktop (1024px+)**: Full-sized UI with optimal spacing
+- **Tablets (600-1024px)**: Scaled layout with flexible grids
+- **Mobile (600px and below)**: Touch-friendly buttons, adapted layouts
+- **Very Small Phones (under 400px)**: Compact UI while maintaining playability
+- **Landscape Mode**: Optimized for horizontal screens
+- **Touch Support**: `touch-action: manipulation` for smooth mobile interactions
+- **Fluid Scaling**: Uses CSS `clamp()` and viewport units (vmin, vw, vh) for automatic scaling
+- **CSS Media Queries**: 5 breakpoints for perfect rendering on any screen size
+
 ## Game Features
 - **1v1 PvP Combat:**
   - Local 1v1: Two players on same device

@@ -7,37 +7,99 @@
     <!-- Socket.io Client -->
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <style>
+        * { box-sizing: border-box; }
         body { margin: 0; padding: 0; background-color: #000; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; user-select: none; }
         #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: flex; flex-direction: column; justify-content: center; align-items: center; }
         .hud-element { position: absolute; color: white; font-weight: bold; pointer-events: none; }
-        #p1-health-bar { top: 20px; left: 20px; width: 200px; height: 20px; border: 2px solid #fff; border-radius: 10px; background: #444; }
+        #p1-health-bar { top: 2vmin; left: 2vmin; width: clamp(120px, 20vw, 250px); height: clamp(16px, 3vmin, 25px); border: 2px solid #fff; border-radius: 10px; background: #444; }
         #p1-health-fill { height: 100%; width: 100%; background: #0f0; border-radius: 10px; transition: width 0.2s, background 0.2s; }
-        #p1-label { top: 5px; left: 20px; font-size: 14px; color: cyan; }
-        #p2-health-bar { top: 20px; right: 20px; width: 200px; height: 20px; border: 2px solid #fff; border-radius: 10px; background: #444; }
+        #p1-label { top: 0.5vmin; left: 2vmin; font-size: clamp(11px, 2vmin, 16px); color: cyan; }
+        #p2-health-bar { top: 2vmin; right: 2vmin; width: clamp(120px, 20vw, 250px); height: clamp(16px, 3vmin, 25px); border: 2px solid #fff; border-radius: 10px; background: #444; }
         #p2-health-fill { height: 100%; width: 100%; background: #0f0; border-radius: 10px; transition: width 0.2s, background 0.2s; }
-        #p2-label { top: 5px; right: 20px; font-size: 14px; color: magenta; text-align: right; }
-        #pause-btn { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: #ff6b00; border: 2px solid white; padding: 10px 20px; font-size: 16px; color: white; cursor: pointer; border-radius: 5px; pointer-events: auto; z-index: 100; }
+        #p2-label { top: 0.5vmin; right: 2vmin; font-size: clamp(11px, 2vmin, 16px); color: magenta; text-align: right; }
+        #pause-btn { position: absolute; top: 2vmin; left: 50%; transform: translateX(-50%); background: #ff6b00; border: 2px solid white; padding: clamp(8px, 1.5vmin, 15px) clamp(15px, 3vmin, 25px); font-size: clamp(12px, 2vmin, 18px); color: white; cursor: pointer; border-radius: 5px; pointer-events: auto; z-index: 100; }
         #pause-btn:hover { background: #ff8c00; }
-        .menu-box { background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); padding: 40px; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.2); text-align: center; pointer-events: auto; box-shadow: 0 0 50px rgba(0, 255, 255, 0.2); }
-        h1 { color: #fff; margin: 0 0 20px 0; font-size: 3rem; text-transform: uppercase; letter-spacing: 5px; text-shadow: 0 0 10px cyan; }
-        p { color: #ccc; font-size: 1.2rem; margin-bottom: 30px; }
-        button { background: linear-gradient(45deg, #00f260, #0575e6); border: none; padding: 15px 40px; color: white; font-size: 1.5rem; border-radius: 50px; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; font-weight: bold; }
-        button:hover { transform: scale(1.05); box-shadow: 0 0 30px rgba(5, 117, 230, 0.6); }
-        .mode-btn { margin: 10px; padding: 12px 35px; font-size: 1.3rem; border-radius: 30px; border: none; cursor: pointer; font-weight: bold; background: linear-gradient(45deg, #f093fb, #f5576c); color: white; }
-        .mode-btn:hover { transform: scale(1.05); box-shadow: 0 0 30px rgba(245, 87, 108, 0.6); }
-        input { padding: 10px; font-size: 16px; border-radius: 5px; border: none; width: 200px; text-align: center; }
-        .slider { width: 200px; margin: 10px auto; }
-        .weapon-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 20px auto; width: fit-content; }
-        .weapon-card { background: rgba(0,255,255,0.2); border: 2px solid cyan; padding: 15px; border-radius: 10px; cursor: pointer; text-align: center; transition: all 0.2s; }
-        .weapon-card:hover { background: rgba(0,255,255,0.4); transform: scale(1.05); }
+        .menu-box { background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); padding: clamp(20px, 5vmin, 60px); border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.2); text-align: center; pointer-events: auto; box-shadow: 0 0 50px rgba(0, 255, 255, 0.2); max-width: 90vw; max-height: 90vh; overflow-y: auto; }
+        h1 { color: #fff; margin: 0 0 clamp(10px, 2vmin, 25px) 0; font-size: clamp(2rem, 8vmin, 4rem); text-transform: uppercase; letter-spacing: 5px; text-shadow: 0 0 10px cyan; }
+        p { color: #ccc; font-size: clamp(0.85rem, 2vmin, 1.3rem); margin-bottom: clamp(15px, 2vmin, 30px); }
+        button { background: linear-gradient(45deg, #00f260, #0575e6); border: none; padding: clamp(12px, 2vmin, 18px) clamp(30px, 5vmin, 50px); color: white; font-size: clamp(1rem, 2.5vmin, 1.8rem); border-radius: 50px; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; font-weight: bold; min-width: 120px; touch-action: manipulation; }
+        button:hover, button:active { transform: scale(1.05); box-shadow: 0 0 30px rgba(5, 117, 230, 0.6); }
+        .mode-btn { margin: clamp(5px, 1vmin, 15px); padding: clamp(10px, 1.5vmin, 16px) clamp(25px, 4vmin, 45px); font-size: clamp(0.9rem, 2vmin, 1.4rem); border-radius: 30px; border: none; cursor: pointer; font-weight: bold; background: linear-gradient(45deg, #f093fb, #f5576c); color: white; min-width: 100px; touch-action: manipulation; }
+        .mode-btn:hover, .mode-btn:active { transform: scale(1.05); box-shadow: 0 0 30px rgba(245, 87, 108, 0.6); }
+        input { padding: clamp(8px, 1.5vmin, 12px); font-size: clamp(13px, 2vmin, 18px); border-radius: 5px; border: none; width: clamp(150px, 80vw, 250px); text-align: center; }
+        .slider { width: clamp(150px, 80vw, 250px); margin: clamp(8px, 1vmin, 12px) auto; }
+        .weapon-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: clamp(8px, 1.5vmin, 15px); margin: clamp(15px, 2vmin, 25px) auto; width: 90%; max-width: 400px; }
+        .weapon-card { background: rgba(0,255,255,0.2); border: 2px solid cyan; padding: clamp(12px, 2vmin, 20px); border-radius: 10px; cursor: pointer; text-align: center; transition: all 0.2s; min-height: 100px; display: flex; flex-direction: column; justify-content: center; }
+        .weapon-card:hover, .weapon-card:active { background: rgba(0,255,255,0.4); transform: scale(1.05); }
         .weapon-card.selected { background: rgba(0,255,255,0.6); border-color: lime; }
-        .weapon-card p { margin: 5px 0; font-size: 0.9rem; }
-        .stats-display { position: absolute; bottom: 20px; left: 20px; background: rgba(0,0,0,0.7); padding: 10px 15px; border: 1px solid cyan; border-radius: 5px; font-size: 12px; color: #0f0; pointer-events: none; }
-        .color-picker { display: flex; gap: 10px; justify-content: center; margin: 15px 0; flex-wrap: wrap; }
-        .color-option { width: 40px; height: 40px; border-radius: 50%; cursor: pointer; border: 2px solid white; }
-        .theme-option { display: inline-block; margin: 5px; padding: 8px 15px; border: 2px solid white; border-radius: 5px; cursor: pointer; background: rgba(255,255,255,0.1); }
+        .weapon-card p { margin: 5px 0; font-size: clamp(0.75rem, 1.5vmin, 1rem); }
+        .stats-display { position: absolute; bottom: 2vmin; left: 2vmin; background: rgba(0,0,0,0.7); padding: clamp(8px, 1vmin, 15px); border: 1px solid cyan; border-radius: 5px; font-size: clamp(10px, 1.5vmin, 14px); color: #0f0; pointer-events: none; }
+        .color-picker { display: flex; gap: clamp(8px, 1.5vmin, 15px); justify-content: center; margin: clamp(10px, 1.5vmin, 20px) 0; flex-wrap: wrap; }
+        .color-option { width: clamp(35px, 6vmin, 50px); height: clamp(35px, 6vmin, 50px); border-radius: 50%; cursor: pointer; border: 2px solid white; touch-action: manipulation; }
+        .theme-option { display: inline-block; margin: clamp(3px, 0.5vmin, 8px); padding: clamp(6px, 1vmin, 12px) clamp(10px, 2vmin, 20px); border: 2px solid white; border-radius: 5px; cursor: pointer; background: rgba(255,255,255,0.1); font-size: clamp(0.85rem, 1.5vmin, 1rem); }
         .theme-option.selected { background: rgba(0,255,255,0.6); border-color: cyan; }
-        #pause-modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+        #pause-modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 200; }
+        
+        /* Tablet: 768px to 1024px */
+        @media (max-width: 1024px) {
+            .weapon-grid { width: 95%; }
+            h1 { letter-spacing: 3px; }
+        }
+        
+        /* Small tablets: 600px to 768px */
+        @media (max-width: 768px) {
+            #ui-layer { padding: 0; }
+            .menu-box { padding: clamp(15px, 4vmin, 40px); margin: 0 auto; }
+            h1 { letter-spacing: 2px; }
+            p { line-height: 1.4; }
+            .weapon-grid { grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); }
+        }
+        
+        /* Mobile: under 600px */
+        @media (max-width: 600px) {
+            #p1-health-bar { width: 100px; height: 14px; top: 15px; left: 10px; border: 1.5px solid #fff; }
+            #p1-label { font-size: 12px; left: 10px; top: 2px; }
+            #p2-health-bar { width: 100px; height: 14px; top: 15px; right: 10px; border: 1.5px solid #fff; }
+            #p2-label { font-size: 12px; right: 10px; top: 2px; }
+            #pause-btn { padding: 8px 15px; font-size: 13px; top: 15px; }
+            .menu-box { padding: 20px 15px; border-radius: 12px; max-height: 85vh; }
+            h1 { font-size: 1.8rem; margin-bottom: 15px; letter-spacing: 2px; }
+            p { font-size: 0.95rem; margin-bottom: 20px; }
+            button { padding: 12px 25px; font-size: 1rem; min-width: 100px; }
+            .mode-btn { padding: 10px 20px; font-size: 0.95rem; margin: 8px; min-width: 90px; }
+            input { width: 100%; max-width: 220px; font-size: 14px; }
+            .slider { width: 100%; max-width: 220px; }
+            .weapon-grid { grid-template-columns: repeat(auto-fit, minmax(75px, 1fr)); gap: 8px; width: 100%; max-width: 300px; }
+            .weapon-card { padding: 10px; min-height: 85px; font-size: 0.85rem; }
+            .weapon-card p { font-size: 0.7rem; }
+            .color-option { width: 40px; height: 40px; }
+            .stats-display { font-size: 11px; padding: 8px 10px; bottom: 10px; left: 10px; }
+        }
+        
+        /* Very small mobile: under 400px */
+        @media (max-width: 400px) {
+            #p1-health-bar { width: 80px; height: 12px; top: 12px; left: 8px; }
+            #p1-label { font-size: 10px; }
+            #p2-health-bar { width: 80px; height: 12px; top: 12px; right: 8px; }
+            #p2-label { font-size: 10px; }
+            #pause-btn { padding: 6px 12px; font-size: 11px; top: 12px; }
+            .menu-box { padding: 15px 12px; }
+            h1 { font-size: 1.5rem; margin-bottom: 12px; }
+            p { font-size: 0.85rem; margin-bottom: 15px; }
+            .mode-btn { padding: 9px 18px; font-size: 0.9rem; margin: 6px; }
+            .weapon-grid { grid-template-columns: repeat(auto-fit, minmax(70px, 1fr)); gap: 6px; }
+            .weapon-card { padding: 8px; min-height: 75px; }
+        }
+        
+        /* Landscape orientation adjustments */
+        @media (max-height: 500px) {
+            .menu-box { max-height: 95vh; padding: clamp(15px, 3vmin, 30px); }
+            h1 { font-size: clamp(1.5rem, 5vmin, 2.5rem); margin-bottom: 10px; }
+            p { font-size: clamp(0.8rem, 1.5vmin, 1rem); margin-bottom: 15px; }
+            button { padding: clamp(8px, 1vmin, 12px) clamp(20px, 3vmin, 35px); font-size: clamp(0.85rem, 1.5vmin, 1.1rem); }
+            .weapon-grid { gap: 5px; margin: 10px auto; }
+            .weapon-card { min-height: 70px; padding: 8px; }
+        }
     </style>
 </head>
 <body>
