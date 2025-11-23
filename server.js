@@ -38,14 +38,14 @@ io.on('connection', (socket) => {
         socket.emit('room-created', { code: roomId });
         console.log('Room created:', roomId);
         
-        // Auto-start game after 30 seconds if no opponent
+        // Auto-cancel after 2 minutes if no opponent joins
         setTimeout(() => {
             if(!games[roomId] || !games[roomId].player2) {
                 socket.emit('opponent-timeout');
                 delete games[roomId];
                 delete players[socket.id];
             }
-        }, 30000);
+        }, 120000);
     });
     
     // Player joins a room

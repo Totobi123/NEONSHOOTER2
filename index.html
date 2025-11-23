@@ -314,16 +314,16 @@ function initializeSocket() {
     });
     
     socket.on('room-not-found', () => {
-        alert('Room not found! Code may be incorrect.');
         document.getElementById('matching-modal').style.display = 'none';
         document.getElementById('online-modal').style.display = 'flex';
+        document.getElementById('matching-text').innerText = 'Room not found! Code may be incorrect.';
     });
     
     socket.on('opponent-timeout', () => {
-        alert('No opponent found. Starting vs Bot...');
-        isPlayingBot = true;
+        // No opponent found after 2 minutes - return to menu
         document.getElementById('matching-modal').style.display = 'none';
-        startGame();
+        document.getElementById('online-modal').style.display = 'flex';
+        document.getElementById('matching-text').innerText = 'No opponent found. Returning to menu...';
     });
     
     socket.on('disconnect', () => {
