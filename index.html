@@ -842,7 +842,6 @@ function animate() {
                         p1Damage += p.damage;
                         soundGen.hit();
                         createExplosion(opponent.x, opponent.y, opponent.color);
-                        applyScreenShake(20);
                         projectiles.splice(i, 1);
                         updateHealthBars();
                         updateStats();
@@ -859,7 +858,6 @@ function animate() {
                         p2Damage += p.damage;
                         soundGen.hit();
                         createExplosion(player1.x, player1.y, player1.color);
-                        applyScreenShake(20);
                         projectiles.splice(i, 1);
                         updateHealthBars();
                         updateStats();
@@ -893,7 +891,6 @@ function animate() {
                         if(onlinePlayerId === 1) p1Damage += p.damage; else p2Damage += p.damage;
                         soundGen.hit();
                         createExplosion(myAvatar.x, myAvatar.y, myAvatar.color);
-                        applyScreenShake(20);
                         projectiles.splice(i, 1);
                         updateHealthBars();
                         updateStats();
@@ -922,7 +919,6 @@ function animate() {
                     if(p.owner === player1) p1Damage += p.damage; else p2Damage += p.damage;
                     soundGen.hit();
                     createExplosion(checkPlayer.x, checkPlayer.y, checkPlayer.color);
-                    applyScreenShake(20);
                     projectiles.splice(i, 1);
                     updateHealthBars();
                     updateStats();
