@@ -210,6 +210,13 @@ let selectedWeaponP1 = 0;
 let selectedWeaponP2 = 0;
 let screenShakeAmount = 0;
 let screenShakeIntensity = 3;
+let currentTheme = 'neon';
+const themes = {
+    'neon': { p1: '#0ff', p2: '#f0f' },
+    'sunset': { p1: '#ff6b35', p2: '#f7931e' },
+    'ocean': { p1: '#00d9ff', p2: '#0099ff' },
+    'forest': { p1: '#00ff00', p2: '#ffff00' }
+};
 
 // GAME STATS
 let p1Kills = 0, p1Damage = 0;
@@ -220,20 +227,32 @@ let particles = [];
 
 // SOUND SYSTEM
 class SoundGenerator {
-    constructor() { this.audioContext = new (window.AudioContext || window.webkitAudioContext)(); }
+    constructor() { 
+        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        this.contextResumed = false;
+    }
+    resumeContext() {
+        if(!this.contextResumed && this.audioContext.state === 'suspended') {
+            this.audioContext.resume();
+            this.contextResumed = true;
+        }
+    }
     playSound(frequency, duration, type = 'sine') {
         if(soundVolume === 0) return;
-        const now = this.audioContext.currentTime;
-        const osc = this.audioContext.createOscillator();
-        const gain = this.audioContext.createGain();
-        osc.connect(gain);
-        gain.connect(this.audioContext.destination);
-        osc.frequency.value = frequency;
-        osc.type = type;
-        gain.gain.setValueAtTime(soundVolume * 0.3, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + duration);
-        osc.start(now);
-        osc.stop(now + duration);
+        try {
+            this.resumeContext();
+            const now = this.audioContext.currentTime;
+            const osc = this.audioContext.createOscillator();
+            const gain = this.audioContext.createGain();
+            osc.connect(gain);
+            gain.connect(this.audioContext.destination);
+            osc.frequency.value = frequency;
+            osc.type = type;
+            gain.gain.setValueAtTime(soundVolume * 0.5, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + duration);
+            osc.start(now);
+            osc.stop(now + duration);
+        } catch(e) { console.log('Sound error:', e); }
     }
     shoot() { this.playSound(400, 0.1); }
     hit() { this.playSound(200, 0.15); }
@@ -399,8 +418,8 @@ class Projectile {
     update() { this.prevX = this.x; this.prevY = this.y; this.x += this.velocity.x; this.y += this.velocity.y; this.draw(); }
 }
 
-let player1 = new Player(canvas.width/4, canvas.height/2, 15, '#0ff', false);
-let player2 = new Player(canvas.width * 3/4, canvas.height/2, 15, '#f0f', true);
+let player1 = new Player(canvas.width/4, canvas.height/2, 15, themes['neon'].p1, false);
+let player2 = new Player(canvas.width * 3/4, canvas.height/2, 15, themes['neon'].p2, true);
 let bot = null;
 let projectiles = [];
 const keys = {};
@@ -951,7 +970,7 @@ function startGame() {
     }
     
     if(isPlayingBot) {
-        bot = new Bot(canvas.width * 3/4, canvas.height/2, 15, '#f0f', botDifficulty);
+        bot = new Bot(canvas.width * 3/4, canvas.height/2, 15, themes[currentTheme].p2, botDifficulty);
         document.getElementById('p1-label').innerText = 'You';
         document.getElementById('p2-label').innerText = 'Bot (' + botDifficulty.toUpperCase() + ')';
     } else if(currentRoomId) {
@@ -1309,8 +1328,22 @@ document.getElementById('volumeSlider').addEventListener('input', (e) => {
 
 document.querySelectorAll('.color-option').forEach(opt => {
     opt.addEventListener('click', (e) => {
-        const themeName = e.target.classList[1];
-        console.log('Theme selected:', themeName);
+        let themeName = null;
+        for(let cls of e.target.classList) {
+            if(cls.startsWith('theme-')) {
+                themeName = cls.replace('theme-', '');
+                break;
+            }
+        }
+        if(themeName && themes[themeName]) {
+            currentTheme = themeName;
+            player1.color = themes[themeName].p1;
+            player2.color = themes[themeName].p2;
+            if(bot) bot.color = themes[themeName].p2;
+            document.querySelectorAll('.color-option').forEach(o => o.style.border = '2px solid #666');
+            e.target.style.border = '3px solid #0ff';
+            console.log('Theme applied:', themeName, themes[themeName]);
+        }
     });
 });
 
