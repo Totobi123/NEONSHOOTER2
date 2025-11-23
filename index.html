@@ -185,21 +185,13 @@
     
     <div id="skins-modal" class="menu-box" style="display: none;">
         <h1>Character Skins</h1>
-        <p>Unlock cosmetics by completing Daily Challenges!</p>
+        <p>Choose your look!</p>
         <div class="weapon-grid" id="skinsGrid"></div>
         <button id="closeSkinBtn" class="mode-btn">BACK</button>
     </div>
     
-    <div id="challenges-modal" class="menu-box" style="display: none;">
-        <h1>Daily Challenges</h1>
-        <p id="resetInfo" style="font-size: 0.9rem; color: #999;"></p>
-        <div id="challengesList" style="text-align: left; margin: 20px auto; max-width: 400px;"></div>
-        <button id="closeChallengesBtn" class="mode-btn">CLOSE</button>
-    </div>
-    
     <button id="settingsBtn" style="position: absolute; bottom: 20px; right: 20px; background: #666; border: 2px solid white; padding: 8px 15px; cursor: pointer; border-radius: 5px; pointer-events: auto; z-index: 50;">⚙ SETTINGS</button>
     <button id="skinsBtn" style="position: absolute; bottom: 20px; right: 150px; background: #666; border: 2px solid white; padding: 8px 15px; cursor: pointer; border-radius: 5px; pointer-events: auto; z-index: 50;">👤 SKINS</button>
-    <button id="challengesBtn" style="position: absolute; bottom: 65px; right: 20px; background: #666; border: 2px solid white; padding: 8px 15px; cursor: pointer; border-radius: 5px; pointer-events: auto; z-index: 50;">📋 CHALLENGES</button>
 </div>
 <script>
 const canvas = document.getElementById('gameCanvas');
@@ -235,8 +227,7 @@ const themes = {
     'forest': { p1: '#00ff00', p2: '#66ff00' }
 };
 
-// COSMETICS & SKINS
-let unlockedSkins = ['default'];
+// COSMETICS & SKINS - ALL FREE
 let selectedSkin = 'default';
 const skins = {
     'default': { name: 'Default', shape: 'circle' },
@@ -244,14 +235,6 @@ const skins = {
     'star': { name: 'Star', shape: 'star' },
     'square': { name: 'Square', shape: 'square' }
 };
-
-// DAILY CHALLENGES
-let dailyChallenges = [
-    { id: 1, title: 'Headshot Master', desc: 'Land 10 critical hits', progress: 0, target: 10, reward: 'star' },
-    { id: 2, title: 'Damage Dealer', desc: 'Deal 500 damage', progress: 0, target: 500, reward: 'diamond' },
-    { id: 3, title: 'Survivor', desc: 'Survive 5 matches', progress: 0, target: 5, reward: 'square' }
-];
-let lastChallengeReset = localStorage.getItem('lastChallengeReset') || new Date().toDateString();
 
 // POWER-UPS
 let powerups = [];
@@ -1060,36 +1043,12 @@ function initSkins() {
     grid.innerHTML = '';
     Object.entries(skins).forEach(([key, skin]) => {
         const card = document.createElement('div');
-        card.className = 'weapon-card' + (unlockedSkins.includes(key) ? ' selected' : '');
-        const locked = unlockedSkins.includes(key) ? '' : ' (Locked)';
-        card.innerHTML = `<strong>${skin.name}</strong><p>${locked}</p>`;
-        if(unlockedSkins.includes(key)) {
-            card.onclick = () => { selectedSkin = key; initSkins(); };
-            card.style.cursor = 'pointer';
-        }
+        card.className = 'weapon-card' + (selectedSkin === key ? ' selected' : '');
+        card.innerHTML = `<strong>${skin.name}</strong><p>Free</p>`;
+        card.onclick = () => { selectedSkin = key; initSkins(); };
+        card.style.cursor = 'pointer';
         grid.appendChild(card);
     });
-}
-
-function updateChallenges() {
-    const today = new Date().toDateString();
-    if(lastChallengeReset !== today) {
-        dailyChallenges.forEach(c => c.progress = 0);
-        lastChallengeReset = today;
-        localStorage.setItem('lastChallengeReset', today);
-    }
-    
-    const list = document.getElementById('challengesList');
-    list.innerHTML = dailyChallenges.map(c => `
-        <div style="background: rgba(0,255,255,0.1); padding: 10px; margin: 5px 0; border-radius: 5px; border-left: 3px solid #0ff;">
-            <strong>${c.title}</strong><br>
-            <small>${c.desc}</small><br>
-            <div style="width: 100%; height: 10px; background: #333; border-radius: 5px; margin-top: 5px;">
-                <div style="height: 100%; width: ${(c.progress/c.target)*100}%; background: #0f0; border-radius: 5px;"></div>
-            </div>
-            <small>${c.progress}/${c.target}</small> | Reward: ${c.reward === 'star' ? '⭐' : c.reward === 'diamond' ? '💎' : '⬜'}
-        </div>
-    `).join('');
 }
 
 function initWeaponSelection() {
@@ -1470,7 +1429,7 @@ document.getElementById('homeBtn').addEventListener('click', goHome);
 document.getElementById('homeFromPauseBtn').addEventListener('click', goHome);
 document.getElementById('resumeBtn').addEventListener('click', togglePause);
 
-// SKINS & CHALLENGES
+// SKINS
 document.getElementById('skinsBtn').addEventListener('click', () => {
     document.getElementById('skins-modal').style.display = 'flex';
     initSkins();
@@ -1478,16 +1437,6 @@ document.getElementById('skinsBtn').addEventListener('click', () => {
 
 document.getElementById('closeSkinBtn').addEventListener('click', () => {
     document.getElementById('skins-modal').style.display = 'none';
-});
-
-document.getElementById('challengesBtn').addEventListener('click', () => {
-    document.getElementById('challenges-modal').style.display = 'flex';
-    document.getElementById('resetInfo').innerText = 'Resets daily at midnight';
-    updateChallenges();
-});
-
-document.getElementById('closeChallengesBtn').addEventListener('click', () => {
-    document.getElementById('challenges-modal').style.display = 'none';
 });
 
 // SETTINGS AND FEATURES EVENT LISTENERS
