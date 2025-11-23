@@ -284,6 +284,7 @@ function initializeSocket() {
         currentRoomId = data.code;
         currentMatchCode = data.code;
         onlinePlayerId = 1;
+        console.log('Room created with code:', data.code);
         document.getElementById('online-modal').style.display = 'none';
         document.getElementById('matching-modal').style.display = 'flex';
         document.getElementById('matching-text').innerText = 'Your Code: ' + data.code + '\n\nWaiting for opponent...\n(Share this code)';
@@ -360,6 +361,7 @@ function joinOnlineRoom(code) {
     }
     
     onlinePlayerId = 2;
+    console.log('Joining room with code:', code);
     document.getElementById('online-modal').style.display = 'none';
     document.getElementById('matching-modal').style.display = 'flex';
     document.getElementById('matching-text').innerText = 'Connecting to: ' + code + '\n\nWaiting...';

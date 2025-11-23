@@ -25,7 +25,13 @@ io.on('connection', (socket) => {
     
     // Player creates a random match
     socket.on('create-room', () => {
-        const roomId = Math.random().toString(36).substr(2, 5).toUpperCase();
+        // Generate a guaranteed 5-character alphanumeric code
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        let roomId = '';
+        for(let i = 0; i < 5; i++) {
+            roomId += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        console.log('Generating room code:', roomId);
         
         socket.join(roomId);
         players[socket.id] = { roomId, playerId: 1, x: 0, y: 0, health: 100 };
@@ -50,12 +56,16 @@ io.on('connection', (socket) => {
     
     // Player joins a room
     socket.on('join-room', (code) => {
+        console.log('Join-room attempt:', code, 'Available rooms:', Object.keys(games));
+        
         if(!games[code]) {
+            console.log('Room not found:', code);
             socket.emit('room-not-found');
             return;
         }
         
         if(games[code].player2) {
+            console.log('Room full:', code);
             socket.emit('room-full');
             return;
         }
