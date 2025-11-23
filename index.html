@@ -507,6 +507,43 @@ window.addEventListener('keydown', (e) => {
         return;
     }
     
+    // Handle SHIFT shooting for Player 2
+    if(e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
+        if(!gameActive || gamePaused) return;
+        
+        // In online mode: only allow Player 2 to shoot with shift
+        if(currentRoomId && onlinePlayerId !== 2) return;
+        
+        const now = Date.now();
+        const weapon = weapons[player2.currentWeaponIndex];
+        const fireRate = weapon.fireRate;
+        if(now - player2.lastShotTime < fireRate) return;
+        player2.lastShotTime = now;
+        const tx = player1.x;
+        const ty = player1.y;
+        const angle = Math.atan2(ty - player2.y, tx - player2.x);
+        for(let i = 0; i < weapon.bullets; i++) {
+            let spreadAngle = angle;
+            if(weapon.name === 'Shotgun') spreadAngle += (Math.random() - 0.5) * weapon.spread;
+            const velocity = {x: Math.cos(spreadAngle) * weapon.speed, y: Math.sin(spreadAngle) * weapon.speed};
+            const proj = new Projectile(player2.x, player2.y, 5, player2.color, velocity, weapon.damage, player2);
+            projectiles.push(proj);
+            
+            // Sync projectile to opponent if online
+            if(socket && currentRoomId) {
+                socket.emit('fire-projectile', {
+                    x: proj.x,
+                    y: proj.y,
+                    vx: proj.velocity.x,
+                    vy: proj.velocity.y,
+                    damage: proj.damage
+                });
+            }
+        }
+        return;
+    }
+    
+    // CRITICAL FIX: Always populate keys array for movement
     keys[e.code] = true;
     if(e.code === 'Escape') togglePause();
 });
@@ -556,42 +593,6 @@ window.addEventListener('click', (event) => {
                 vy: proj.velocity.y,
                 damage: proj.damage
             });
-        }
-    }
-});
-
-window.addEventListener('keydown', (e) => {
-    if(e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
-        if(!gameActive || gamePaused) return;
-        
-        // In online mode: only allow Player 2 to shoot with shift
-        if(currentRoomId && onlinePlayerId !== 2) return;
-        
-        const now = Date.now();
-        const weapon = weapons[player2.currentWeaponIndex];
-        const fireRate = weapon.fireRate;
-        if(now - player2.lastShotTime < fireRate) return;
-        player2.lastShotTime = now;
-        const tx = player1.x;
-        const ty = player1.y;
-        const angle = Math.atan2(ty - player2.y, tx - player2.x);
-        for(let i = 0; i < weapon.bullets; i++) {
-            let spreadAngle = angle;
-            if(weapon.name === 'Shotgun') spreadAngle += (Math.random() - 0.5) * weapon.spread;
-            const velocity = {x: Math.cos(spreadAngle) * weapon.speed, y: Math.sin(spreadAngle) * weapon.speed};
-            const proj = new Projectile(player2.x, player2.y, 5, player2.color, velocity, weapon.damage, player2);
-            projectiles.push(proj);
-            
-            // Sync projectile to opponent if online
-            if(socket && currentRoomId) {
-                socket.emit('fire-projectile', {
-                    x: proj.x,
-                    y: proj.y,
-                    vx: proj.velocity.x,
-                    vy: proj.velocity.y,
-                    damage: proj.damage
-                });
-            }
         }
     }
 });
