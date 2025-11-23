@@ -740,6 +740,11 @@ function startGame() {
     gameActive = true;
     gamePaused = false;
     
+    // For offline modes: ALWAYS use default controls
+    if(!currentRoomId) {
+        useDefaultControls = true;
+    }
+    
     if(isPlayingBot) {
         bot = new Bot(canvas.width * 3/4, canvas.height/2, 15, '#f0f', botDifficulty);
         document.getElementById('p1-label').innerText = 'You';
