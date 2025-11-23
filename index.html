@@ -26,6 +26,17 @@
         .mode-btn { margin: 10px; padding: 12px 35px; font-size: 1.3rem; border-radius: 30px; border: none; cursor: pointer; font-weight: bold; background: linear-gradient(45deg, #f093fb, #f5576c); color: white; }
         .mode-btn:hover { transform: scale(1.05); box-shadow: 0 0 30px rgba(245, 87, 108, 0.6); }
         input { padding: 10px; font-size: 16px; border-radius: 5px; border: none; width: 200px; text-align: center; }
+        .slider { width: 200px; margin: 10px auto; }
+        .weapon-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 20px auto; width: fit-content; }
+        .weapon-card { background: rgba(0,255,255,0.2); border: 2px solid cyan; padding: 15px; border-radius: 10px; cursor: pointer; text-align: center; transition: all 0.2s; }
+        .weapon-card:hover { background: rgba(0,255,255,0.4); transform: scale(1.05); }
+        .weapon-card.selected { background: rgba(0,255,255,0.6); border-color: lime; }
+        .weapon-card p { margin: 5px 0; font-size: 0.9rem; }
+        .stats-display { position: absolute; bottom: 20px; left: 20px; background: rgba(0,0,0,0.7); padding: 10px 15px; border: 1px solid cyan; border-radius: 5px; font-size: 12px; color: #0f0; pointer-events: none; }
+        .color-picker { display: flex; gap: 10px; justify-content: center; margin: 15px 0; flex-wrap: wrap; }
+        .color-option { width: 40px; height: 40px; border-radius: 50%; cursor: pointer; border: 2px solid white; }
+        .theme-option { display: inline-block; margin: 5px; padding: 8px 15px; border: 2px solid white; border-radius: 5px; cursor: pointer; background: rgba(255,255,255,0.1); }
+        .theme-option.selected { background: rgba(0,255,255,0.6); border-color: cyan; }
         #pause-modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); }
     </style>
 </head>
@@ -127,6 +138,51 @@
             <button id="cancelMatchBtn" class="mode-btn" style="background: linear-gradient(45deg, #f44, #c00);">CANCEL</button>
         </div>
     </div>
+    
+    <div id="weapon-selection-modal" class="menu-box" style="display: none;">
+        <h1>Select Your Weapon</h1>
+        <p>Pick your loadout:</p>
+        <div class="weapon-grid" id="weaponGrid"></div>
+        <button id="startGameWithWeaponBtn" class="mode-btn" style="background: linear-gradient(45deg, #00d4ff, #0099ff);">START</button>
+    </div>
+    
+    <div id="settings-modal" class="menu-box" style="display: none;">
+        <h1>Settings</h1>
+        
+        <div style="margin: 20px 0;">
+            <h3 style="color: cyan; margin-bottom: 10px;">Volume</h3>
+            <input type="range" id="volumeSlider" class="slider" min="0" max="100" value="50">
+            <p style="font-size: 0.9rem;">Volume: <span id="volumeValue">50</span>%</p>
+        </div>
+        
+        <div style="margin: 20px 0;">
+            <h3 style="color: cyan; margin-bottom: 10px;">Color Theme</h3>
+            <div class="color-picker">
+                <div class="color-option theme-neon" style="background: linear-gradient(45deg, #00f260, #0575e6);" title="Neon"></div>
+                <div class="color-option theme-sunset" style="background: linear-gradient(45deg, #ff6b00, #ff0000);" title="Sunset"></div>
+                <div class="color-option theme-ocean" style="background: linear-gradient(45deg, #0099ff, #00ccff);" title="Ocean"></div>
+                <div class="color-option theme-forest" style="background: linear-gradient(45deg, #00ff00, #00aa00);" title="Forest"></div>
+            </div>
+        </div>
+        
+        <div style="margin: 20px 0;">
+            <h3 style="color: cyan; margin-bottom: 10px;">Visual Effects</h3>
+            <label style="color: #ccc; margin: 10px;"><input type="checkbox" id="screenShakeToggle" checked> Screen Shake on Hit</label><br>
+            <label style="color: #ccc; margin: 10px;"><input type="checkbox" id="particleToggle" checked> Particle Effects</label><br>
+            <label style="color: #ccc; margin: 10px;"><input type="checkbox" id="trailToggle" checked> Bullet Trails</label>
+        </div>
+        
+        <button id="closeSettingsBtn" class="mode-btn">CLOSE</button>
+    </div>
+    
+    <div id="stats-container" class="stats-display" style="display: none; pointer-events: none;">
+        <div>P1 Kills: <span id="p1-kills">0</span></div>
+        <div>P1 Damage: <span id="p1-damage">0</span></div>
+        <div>P2 Kills: <span id="p2-kills">0</span></div>
+        <div>P2 Damage: <span id="p2-damage">0</span></div>
+    </div>
+    
+    <button id="settingsBtn" style="position: absolute; bottom: 20px; right: 20px; background: #666; border: 2px solid white; padding: 8px 15px; cursor: pointer; border-radius: 5px; pointer-events: auto; z-index: 50;">⚙ SETTINGS</button>
 </div>
 <script>
 const canvas = document.getElementById('gameCanvas');
@@ -143,6 +199,84 @@ let localMode = null; // 'bot' or 'player'
 let botDifficulty = 'medium'; // 'easy', 'medium', 'hard'
 let animationId;
 let isPlayingBot = false;
+
+// GAME SETTINGS AND STATS
+let soundVolume = 0.5;
+let screenShakeEnabled = true;
+let particleEffectsEnabled = true;
+let bulletTrailsEnabled = true;
+let selectedWeapon = 0;
+let selectedWeaponP1 = 0;
+let selectedWeaponP2 = 0;
+let screenShakeAmount = 0;
+let screenShakeIntensity = 3;
+
+// GAME STATS
+let p1Kills = 0, p1Damage = 0;
+let p2Kills = 0, p2Damage = 0;
+
+// PARTICLES AND EFFECTS
+let particles = [];
+
+// SOUND SYSTEM
+class SoundGenerator {
+    constructor() { this.audioContext = new (window.AudioContext || window.webkitAudioContext)(); }
+    playSound(frequency, duration, type = 'sine') {
+        if(soundVolume === 0) return;
+        const now = this.audioContext.currentTime;
+        const osc = this.audioContext.createOscillator();
+        const gain = this.audioContext.createGain();
+        osc.connect(gain);
+        gain.connect(this.audioContext.destination);
+        osc.frequency.value = frequency;
+        osc.type = type;
+        gain.gain.setValueAtTime(soundVolume * 0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + duration);
+        osc.start(now);
+        osc.stop(now + duration);
+    }
+    shoot() { this.playSound(400, 0.1); }
+    hit() { this.playSound(200, 0.15); }
+    gameOver() { this.playSound(150, 0.3); }
+}
+let soundGen = new SoundGenerator();
+
+// PARTICLE SYSTEM
+class Particle {
+    constructor(x, y, vx, vy, color, life = 20) {
+        this.x = x; this.y = y; this.vx = vx; this.vy = vy; 
+        this.color = color; this.life = life; this.maxLife = life;
+    }
+    update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vy += 0.1;
+        this.life--;
+    }
+    draw() {
+        const alpha = this.life / this.maxLife;
+        ctx.globalAlpha = alpha;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, 3, 0, Math.PI * 2);
+        ctx.fillStyle = this.color;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+    }
+}
+
+function createExplosion(x, y, color, count = 10) {
+    if(!particleEffectsEnabled) return;
+    for(let i = 0; i < count; i++) {
+        const angle = (Math.PI * 2 * i) / count;
+        const speed = 3 + Math.random() * 2;
+        particles.push(new Particle(x, y, Math.cos(angle) * speed, Math.sin(angle) * speed, color, 25));
+    }
+}
+
+function applyScreenShake(intensity = 5) {
+    if(!screenShakeEnabled) return;
+    screenShakeAmount = intensity;
+}
 
 // Control registration
 let calibrationMode = false;
@@ -247,9 +381,22 @@ class Projectile {
     constructor(x, y, radius, color, velocity, damage, owner) {
         this.x = x; this.y = y; this.radius = radius; this.color = color; 
         this.velocity = velocity; this.damage = damage; this.owner = owner;
+        this.prevX = x; this.prevY = y;
     }
-    draw() { ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2, false); ctx.fillStyle = this.color; ctx.fill(); ctx.closePath(); }
-    update() { this.draw(); this.x += this.velocity.x; this.y += this.velocity.y; }
+    draw() { 
+        if(bulletTrailsEnabled) {
+            ctx.strokeStyle = this.color;
+            ctx.globalAlpha = 0.5;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(this.prevX, this.prevY);
+            ctx.lineTo(this.x, this.y);
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+        }
+        ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2, false); ctx.fillStyle = this.color; ctx.fill(); ctx.closePath(); 
+    }
+    update() { this.prevX = this.x; this.prevY = this.y; this.x += this.velocity.x; this.y += this.velocity.y; this.draw(); }
 }
 
 let player1 = new Player(canvas.width/4, canvas.height/2, 15, '#0ff', false);
@@ -489,6 +636,7 @@ window.addEventListener('keydown', (e) => {
             const velocity = {x: Math.cos(spreadAngle) * weapon.speed, y: Math.sin(spreadAngle) * weapon.speed};
             const proj = new Projectile(player1.x, player1.y, 5, player1.color, velocity, weapon.damage, player1);
             projectiles.push(proj);
+            soundGen.shoot();
             
             // Sync projectile to opponent if online
             if(socket && currentRoomId) {
@@ -525,6 +673,7 @@ window.addEventListener('keydown', (e) => {
             const velocity = {x: Math.cos(spreadAngle) * weapon.speed, y: Math.sin(spreadAngle) * weapon.speed};
             const proj = new Projectile(player2.x, player2.y, 5, player2.color, velocity, weapon.damage, player2);
             projectiles.push(proj);
+            soundGen.shoot();
             
             // Sync projectile to opponent if online
             if(socket && currentRoomId) {
@@ -637,9 +786,16 @@ function animate() {
                     const dist = Math.hypot(p.x - opponent.x, p.y - opponent.y);
                     if(dist < p.radius + opponent.radius) {
                         opponent.health -= p.damage;
+                        p1Damage += p.damage;
+                        soundGen.hit();
+                        createExplosion(opponent.x, opponent.y, opponent.color);
+                        applyScreenShake(8);
                         projectiles.splice(i, 1);
                         updateHealthBars();
+                        updateStats();
                         if(opponent.health <= 0) {
+                            p1Kills++;
+                            soundGen.gameOver();
                             endGame(player1);
                         }
                     }
@@ -647,9 +803,16 @@ function animate() {
                     const dist = Math.hypot(p.x - player1.x, p.y - player1.y);
                     if(dist < p.radius + player1.radius) {
                         player1.health -= p.damage;
+                        p2Damage += p.damage;
+                        soundGen.hit();
+                        createExplosion(player1.x, player1.y, player1.color);
+                        applyScreenShake(8);
                         projectiles.splice(i, 1);
                         updateHealthBars();
+                        updateStats();
                         if(player1.health <= 0) {
+                            p2Kills++;
+                            soundGen.gameOver();
                             endGame(opponent);
                         }
                     }
@@ -674,13 +837,17 @@ function animate() {
                     const dist = Math.hypot(p.x - myAvatar.x, p.y - myAvatar.y);
                     if(dist < p.radius + myAvatar.radius) {
                         myAvatar.health -= p.damage;
+                        if(onlinePlayerId === 1) p1Damage += p.damage; else p2Damage += p.damage;
+                        soundGen.hit();
+                        createExplosion(myAvatar.x, myAvatar.y, myAvatar.color);
+                        applyScreenShake(8);
                         projectiles.splice(i, 1);
                         updateHealthBars();
-                        
-                        // Sync MY health (not opponent's) - will be sent next frame
-                        // No manual emit needed - syncGameStateOnline() handles it
+                        updateStats();
                         
                         if(myAvatar.health <= 0) {
+                            if(onlinePlayerId === 1) p2Kills++; else p1Kills++;
+                            soundGen.gameOver();
                             endGame(opponentAvatar);
                         }
                     }
@@ -699,10 +866,17 @@ function animate() {
                 const dist = Math.hypot(p.x - checkPlayer.x, p.y - checkPlayer.y);
                 if(dist < p.radius + checkPlayer.radius) {
                     checkPlayer.health -= p.damage;
+                    if(p.owner === player1) p1Damage += p.damage; else p2Damage += p.damage;
+                    soundGen.hit();
+                    createExplosion(checkPlayer.x, checkPlayer.y, checkPlayer.color);
+                    applyScreenShake(8);
                     projectiles.splice(i, 1);
                     updateHealthBars();
+                    updateStats();
                     
                     if(checkPlayer.health <= 0) {
+                        if(p.owner === player1) p1Kills++; else p2Kills++;
+                        soundGen.gameOver();
                         endGame(p.owner === player1 ? player1 : player2);
                     }
                 }
@@ -719,6 +893,12 @@ function animate() {
         player2.draw();
     }
     projectiles.forEach(p => p.draw && p.draw());
+    
+    // Draw particles
+    particles = particles.filter(p => p.life > 0);
+    particles.forEach(p => { p.update(); p.draw(); });
+    
+    ctx.restore();
 }
 
 function updateHealthBars() {
@@ -732,14 +912,38 @@ function updateHealthBars() {
     document.getElementById('p2-health-fill').style.background = p2Percent > 50 ? '#0f0' : p2Percent > 20 ? '#ff0' : '#f00';
 }
 
+function updateStats() {
+    document.getElementById('p1-kills').innerText = p1Kills;
+    document.getElementById('p1-damage').innerText = p1Damage;
+    document.getElementById('p2-kills').innerText = p2Kills;
+    document.getElementById('p2-damage').innerText = p2Damage;
+}
+
+function initWeaponSelection() {
+    const grid = document.getElementById('weaponGrid');
+    grid.innerHTML = '';
+    weapons.forEach((w, idx) => {
+        const card = document.createElement('div');
+        card.className = 'weapon-card' + (selectedWeapon === idx ? ' selected' : '');
+        card.innerHTML = `<strong>${w.name}</strong><p>DMG: ${w.damage}</p><p>ROF: ${w.fireRate}ms</p>`;
+        card.onclick = () => { selectedWeapon = idx; initWeaponSelection(); };
+        grid.appendChild(card);
+    });
+}
+
 function startGame() {
     player1.health = 100;
     player1.x = canvas.width/4;
     player1.y = canvas.height/2;
     player1.lastShotTime = 0;
     projectiles = [];
+    particles = [];
+    p1Kills = 0; p1Damage = 0;
+    p2Kills = 0; p2Damage = 0;
+    updateStats();
     gameActive = true;
     gamePaused = false;
+    document.getElementById('stats-container').style.display = 'block';
     
     // For offline modes: ALWAYS use default controls
     if(!currentRoomId) {
@@ -1089,9 +1293,51 @@ document.getElementById('homeBtn').addEventListener('click', goHome);
 document.getElementById('homeFromPauseBtn').addEventListener('click', goHome);
 document.getElementById('resumeBtn').addEventListener('click', togglePause);
 
+// SETTINGS AND FEATURES EVENT LISTENERS
+document.getElementById('settingsBtn').addEventListener('click', () => {
+    document.getElementById('settings-modal').style.display = 'flex';
+});
+
+document.getElementById('closeSettingsBtn').addEventListener('click', () => {
+    document.getElementById('settings-modal').style.display = 'none';
+});
+
+document.getElementById('volumeSlider').addEventListener('input', (e) => {
+    soundVolume = e.target.value / 100;
+    document.getElementById('volumeValue').innerText = e.target.value;
+});
+
+document.querySelectorAll('.color-option').forEach(opt => {
+    opt.addEventListener('click', (e) => {
+        const themeName = e.target.classList[1];
+        console.log('Theme selected:', themeName);
+    });
+});
+
+document.getElementById('screenShakeToggle').addEventListener('change', (e) => {
+    screenShakeEnabled = e.target.checked;
+});
+
+document.getElementById('particleToggle').addEventListener('change', (e) => {
+    particleEffectsEnabled = e.target.checked;
+});
+
+document.getElementById('trailToggle').addEventListener('change', (e) => {
+    bulletTrailsEnabled = e.target.checked;
+});
+
+document.getElementById('startGameWithWeaponBtn').addEventListener('click', () => {
+    selectedWeaponP1 = selectedWeapon;
+    player1.currentWeaponIndex = selectedWeaponP1;
+    player2.currentWeaponIndex = selectedWeapon;
+    document.getElementById('weapon-selection-modal').style.display = 'none';
+    startGame();
+});
+
 window.addEventListener('load', () => {
     document.getElementById('start-modal').style.display = 'flex';
     document.getElementById('pause-btn').style.display = 'none';
+    initWeaponSelection();
 });
 </script>
 </body>
