@@ -25,7 +25,7 @@ io.on('connection', (socket) => {
     
     // Player creates a random match
     socket.on('create-room', () => {
-        const roomId = 'room_' + Math.random().toString(36).substr(2, 8).toUpperCase();
+        const roomId = Math.random().toString(36).substr(2, 5).toUpperCase();
         
         socket.join(roomId);
         players[socket.id] = { roomId, playerId: 1, x: 0, y: 0, health: 100 };

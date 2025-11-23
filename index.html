@@ -100,7 +100,7 @@
         
         <div id="code-section" style="display: none; margin-top: 20px;">
             <p>Your Code:</p>
-            <input type="text" id="codeInput" placeholder="Enter or create code" maxlength="6">
+            <input type="text" id="codeInput" placeholder="Enter or create code" maxlength="5">
             <p style="margin-top: 15px; font-size: 0.9rem;">Share this code with a friend</p>
             <button id="codeConnectBtn" class="mode-btn" style="margin-top: 10px;">CONNECT</button>
         </div>
@@ -866,7 +866,9 @@ document.getElementById('backFromOnlineBtn').addEventListener('click', () => {
 
 document.getElementById('copyCodeBtn').addEventListener('click', () => {
     if(currentMatchCode) {
-        navigator.clipboard.writeText(currentMatchCode).then(() => {
+        // Copy only the 5-character code
+        const codeToShare = currentMatchCode.substring(0, 5);
+        navigator.clipboard.writeText(codeToShare).then(() => {
             const btn = document.getElementById('copyCodeBtn');
             const origText = btn.innerText;
             btn.innerText = 'COPIED!';
