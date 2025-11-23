@@ -82,24 +82,34 @@ io.on('connection', (socket) => {
             health: 100 
         };
         
-        // Notify both players game started
-        io.to(code).emit('game-start', {
+        // Notify both players game started with their player IDs
+        io.to(games[code].player1).emit('game-start', {
             roomId: code,
-            player1: games[code].player1,
-            player2: socket.id
+            playerId: 1
         });
         
-        console.log('Player joined room:', code);
+        io.to(socket.id).emit('game-start', {
+            roomId: code,
+            playerId: 2
+        });
+        
+        console.log('Player joined room:', code, '- Player 1:', games[code].player1, 'Player 2:', socket.id);
     });
     
     // Sync player state
     socket.on('player-update', (data) => {
         if(players[socket.id]) {
             const roomId = players[socket.id].roomId;
-            players[socket.id] = { ...players[socket.id], ...data };
+            const myPlayerId = players[socket.id].playerId; // Server-authoritative ID
             
-            // Send to opponent
-            const opponentId = data.playerId === 1 
+            // CRITICAL: Only accept updates for THIS socket's playerId (ignore client-provided ID)
+            // Update this player's state
+            players[socket.id].x = data.x;
+            players[socket.id].y = data.y;
+            players[socket.id].health = data.health;
+            
+            // Send to opponent based on SERVER-AUTHORITATIVE playerId
+            const opponentId = myPlayerId === 1 
                 ? games[roomId]?.player2 
                 : games[roomId]?.player1;
             

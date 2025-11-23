@@ -292,7 +292,13 @@ function initializeSocket() {
     });
     
     socket.on('game-start', (data) => {
+        // Server confirms our player ID and room
+        onlinePlayerId = data.playerId;
+        currentRoomId = data.roomId;  // CRITICAL: Joiner needs this to sync!
+        currentMatchCode = data.roomId;
+        console.log('Game starting! Room:', data.roomId, 'Player ID:', onlinePlayerId);
         document.getElementById('matching-modal').style.display = 'none';
+        document.getElementById('copyCodeBtn').style.display = 'none';  // Hide copy button when game starts
         startGame();
     });
     
@@ -316,13 +322,19 @@ function initializeSocket() {
     
     socket.on('opponent-projectile', (projectile) => {
         // Handle incoming projectiles from opponent
-        projectiles.push({
-            x: projectile.x,
-            y: projectile.y,
-            velocity: { x: projectile.vx, y: projectile.vy },
-            damage: projectile.damage,
-            owner: player2
-        });
+        // CRITICAL: Owner is the OTHER player, not always player2!
+        const projectileOwner = onlinePlayerId === 1 ? player2 : player1;
+        const velocity = { x: projectile.vx, y: projectile.vy };
+        // Use Projectile class so it renders with draw()
+        projectiles.push(new Projectile(
+            projectile.x,
+            projectile.y,
+            5, // radius
+            projectileOwner.color,
+            velocity,
+            projectile.damage,
+            projectileOwner
+        ));
     });
     
     socket.on('opponent-disconnect', () => {
@@ -461,6 +473,10 @@ window.addEventListener('keydown', (e) => {
     // Player 1 shoot with ENTER key
     if(e.code === 'Enter') {
         if(!gameActive || gamePaused) return;
+        
+        // In online mode: only allow Player 1 (host) to shoot with Enter
+        if(currentRoomId && onlinePlayerId !== 1) return;
+        
         const now = Date.now();
         const weapon = weapons[player1.currentWeaponIndex];
         const fireRate = weapon.fireRate;
@@ -474,7 +490,19 @@ window.addEventListener('keydown', (e) => {
             let spreadAngle = angle;
             if(weapon.name === 'Shotgun') spreadAngle += (Math.random() - 0.5) * weapon.spread;
             const velocity = {x: Math.cos(spreadAngle) * weapon.speed, y: Math.sin(spreadAngle) * weapon.speed};
-            projectiles.push(new Projectile(player1.x, player1.y, 5, player1.color, velocity, weapon.damage, player1));
+            const proj = new Projectile(player1.x, player1.y, 5, player1.color, velocity, weapon.damage, player1);
+            projectiles.push(proj);
+            
+            // Sync projectile to opponent if online
+            if(socket && currentRoomId) {
+                socket.emit('fire-projectile', {
+                    x: proj.x,
+                    y: proj.y,
+                    vx: proj.velocity.x,
+                    vy: proj.velocity.y,
+                    damage: proj.damage
+                });
+            }
         }
         return;
     }
@@ -575,8 +603,9 @@ function animate() {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
     if(!gamePaused) {
-        // In online mode: only move the controlled player
+        // Update player movement based on mode
         if(currentRoomId) {
+            // Online mode: only move the controlled player
             if(onlinePlayerId === 1) {
                 player1.update(keys);
                 // Player 2 position comes from opponent updates
@@ -584,18 +613,20 @@ function animate() {
                 player2.update(keys);
                 // Player 1 position comes from opponent updates
             }
-        } else {
-            // Local mode: move both players
-            player1.update(keys);
-        }
-        
-        // Sync online game state
-        if(currentRoomId) {
+            // Sync online game state every frame
             syncGameStateOnline();
+        } else if(isPlayingBot) {
+            // Bot mode: move player and bot
+            player1.update(keys);
+            bot.update(player1);
+        } else {
+            // Local 2-player mode: move both players
+            player1.update(keys);
+            player2.update(keys);
         }
         
+        // Handle projectiles based on mode
         if(isPlayingBot) {
-            bot.update(player1);
             const opponent = bot;
             projectiles.forEach((p, i) => {
                 p.update();
@@ -626,8 +657,39 @@ function animate() {
                     }
                 }
             });
-        } else {
+        } else if(currentRoomId) {
             // Online multiplayer - handle projectiles
+            // Each client detects hits on THEIR OWN avatar and syncs their health
+            projectiles.forEach((p, i) => {
+                p.update();
+                if(p.x < 0 || p.x > canvas.width || p.y < 0 || p.y > canvas.height) {
+                    projectiles.splice(i, 1);
+                    return;
+                }
+                
+                // Check if this projectile hits MY avatar (not opponent)
+                const myAvatar = onlinePlayerId === 1 ? player1 : player2;
+                const opponentAvatar = onlinePlayerId === 1 ? player2 : player1;
+                
+                // Only process hits on MY avatar (opponent's projectiles hitting me)
+                if(p.owner === opponentAvatar) {
+                    const dist = Math.hypot(p.x - myAvatar.x, p.y - myAvatar.y);
+                    if(dist < p.radius + myAvatar.radius) {
+                        myAvatar.health -= p.damage;
+                        projectiles.splice(i, 1);
+                        updateHealthBars();
+                        
+                        // Sync MY health (not opponent's) - will be sent next frame
+                        // No manual emit needed - syncGameStateOnline() handles it
+                        
+                        if(myAvatar.health <= 0) {
+                            endGame(opponentAvatar);
+                        }
+                    }
+                }
+            });
+        } else {
+            // Local 2-player mode - handle projectiles
             projectiles.forEach((p, i) => {
                 p.update();
                 if(p.x < 0 || p.x > canvas.width || p.y < 0 || p.y > canvas.height) {
@@ -642,16 +704,6 @@ function animate() {
                     projectiles.splice(i, 1);
                     updateHealthBars();
                     
-                    // Sync damage to opponent immediately
-                    if(socket && currentRoomId) {
-                        socket.emit('player-update', {
-                            x: checkPlayer === player1 ? player1.x : player2.x,
-                            y: checkPlayer === player1 ? player1.y : player2.y,
-                            health: checkPlayer.health,
-                            playerId: checkPlayer === player1 ? 1 : 2
-                        });
-                    }
-                    
                     if(checkPlayer.health <= 0) {
                         endGame(p.owner === player1 ? player1 : player2);
                     }
@@ -659,6 +711,16 @@ function animate() {
             });
         }
     }
+    
+    // Draw all players and projectiles
+    if(isPlayingBot) {
+        player1.draw();
+        bot.draw();
+    } else {
+        player1.draw();
+        player2.draw();
+    }
+    projectiles.forEach(p => p.draw && p.draw());
 }
 
 function updateHealthBars() {
